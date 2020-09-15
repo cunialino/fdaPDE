@@ -387,6 +387,9 @@ class  RegressionDataGAM : public RegressionHandler
 				SEXP GCV, SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, 
 				SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP Rtune, SEXP RarealDataAvg);
 
+		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT,
+					  SEXP Rcovariates, SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP GCV, SEXP RGCVmethod,
+                    SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rmax_num_iteration, SEXP Rtreshold );
 		#endif
 
 		//! A costructor for the Laplacian case
@@ -413,6 +416,11 @@ class  RegressionDataGAM : public RegressionHandler
 									std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, bool DOF, bool GCV, UInt search, 
 									UInt max_num_iterations, Real threshold, Real tune, bool arealDataAvg);
 
+		explicit RegressionDataGAM(std::vector<Point>& locations, std::vector<Real>& time_locations, VectorXr& observations, UInt order,
+													std::vector<Real>& lambdaS, std::vector<Real>& lambdaT,
+													MatrixXr& covariates, MatrixXi& incidenceMatrix, std::vector<UInt>& bc_indices,	std::vector<Real>& bc_values, VectorXr& ic,
+													bool flag_mass, bool flag_parabolic, bool DOF,bool GCV, UInt search, Real tune, bool arealDataAvg, UInt max_num_iterations, 
+                                                    Real threshold);
 		//! A method returning the maximum iteration for the iterative method
 		inline UInt const & get_maxiter() const {return max_num_iterations_;}
 		//! A method returning the treshold 

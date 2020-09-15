@@ -20,6 +20,19 @@ FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::FPIRLS_Base(const MeshH
 
 };
 
+template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
+FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<Real> mesh_time, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+    mesh_(mesh), inputData_(inputData), regression_(mesh, mesh_time, inputData_, true), scale_parameter_flag_(scale_parameter_flag), _scale_param(scale_param), mesh_time_(mesh_time)
+{
+  //initialization of mu, current_J_values and past_J_values.
+  for(UInt j=0; j< inputData.getLambdaS().size() ; j++){
+    mu_.push_back(mu0);
+    current_J_values.push_back(std::array<Real,2>{1,1});
+    past_J_values.push_back(std::array<Real,2>{1,1});
+  }
+};
+
+
 // FPIRLS_base methods 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
 void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const ForcingTerm& u){
@@ -35,6 +48,8 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
   n_iterations = std::vector<UInt>(LambdaS_len,0);
 
   // Initialize the outputs. The temporal dimension is not implemented, for this reason the 2nd dimension is set to 1.
+  //
+  /* Quando hai fatto tutto qua devi adattare la seconda dimensione per il caso separabile, quindi con LambdaT:  <07-09-20, Elia Cunial> */
   if( this->inputData_.getCovariates().rows() > 0 )_beta_hat.resize(LambdaS_len,1);
   _fn_hat.resize(LambdaS_len,1);
   _dof.resize(LambdaS_len,1);
@@ -63,9 +78,9 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
     std::cout<<"Start FPIRLS for the lambda number "<<i+1<<std::endl;
     #endif
     
-    
     // start the iterative method for the lambda index i
     while(stopping_criterion(i)){ 
+        std::cerr << "Iteration: " << n_iterations[i] << " \n\n\n" << std::endl;
     
       // STEP (1)
       
@@ -189,10 +204,13 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_mu(UInt& l
     W_beta = inputData_.getCovariates()*_beta_hat(lambda_index,0);
 
 
+  
   for(UInt j=0; j < W_beta.size(); j++){
-      mu_[lambda_index](j) = inv_link(W_beta[j] + _fn_hat(lambda_index,0)(j));
+      if(_fn_hat(lambda_index, 0)(j) == 0)
+          std::cerr << "Sto dividendo per 0!!!!" << std::endl;
+      else 
+        mu_[lambda_index](j) = inv_link(W_beta[j] + _fn_hat(lambda_index,0)(j));
   }
-
 }
 
 

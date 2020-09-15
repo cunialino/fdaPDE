@@ -31,6 +31,7 @@ extern SEXP tree_mesh_construction(SEXP, SEXP, SEXP, SEXP);
 extern SEXP gam_Laplace( SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP gam_PDE( SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP gam_PDE_space_varying( SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP gam_Laplace_time( SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 
 static const R_CallMethodDef CallEntries[] = {
@@ -57,6 +58,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"gam_Laplace",                       (DL_FUNC) &gam_Laplace,                       25},
     {"gam_PDE",                           (DL_FUNC) &gam_PDE,                           28},
     {"gam_PDE_space_varying",             (DL_FUNC) &gam_PDE_space_varying,             29},
+    {"gam_Laplace_time",                  (DL_FUNC) &gam_Laplace_time,                  31},
     {NULL, NULL, 0}
 };
 

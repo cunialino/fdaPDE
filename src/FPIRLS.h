@@ -2,8 +2,10 @@
 #define _FPIRLS_H
 
 #include <cmath>
+#include <iostream>
 #include <math.h>
 #include <array>
+#include <vector>
 
 #include "mixedFERegression.h"
 #include "evaluator.h"
@@ -19,6 +21,7 @@ class FPIRLS_Base {
    const MeshHandler<ORDER, mydim, ndim> &mesh_;
    InputHandler& inputData_; //!< It contains the data of the problem (RegressionDataGAM)
    MixedFERegression<InputHandler, Integrator,ORDER, IntegratorGaussP3, 0, 0, mydim, ndim>  regression_;
+   std::vector<Real> mesh_time_;
 
   
    std::vector<VectorXr> mu_; //!< Mean vector
@@ -88,6 +91,7 @@ class FPIRLS_Base {
   public:
 
     FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param); // Constructor
+    FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<Real> mesh_time, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param); // Constructor
 
     //! A virutal destructor
    virtual ~FPIRLS_Base(){};
@@ -133,6 +137,8 @@ class FPIRLS: public FPIRLS_Base< InputHandler,  Integrator,  ORDER,  mydim,  nd
 
     FPIRLS(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
       FPIRLS_Base<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, inputData, mu0, scale_parameter_flag, scale_param){};
+    FPIRLS(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<Real> mesh_time, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+        FPIRLS_Base<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, mesh_time, inputData, mu0, scale_parameter_flag, scale_param){};
      //! A virtual destructor
    virtual ~FPIRLS(){};
 
@@ -176,6 +182,8 @@ class FPIRLS_Bernoulli : public FPIRLS <InputHandler, Integrator, ORDER, mydim, 
 
     FPIRLS_Bernoulli(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0):
       FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, inputData, mu0, false, 1){};
+    FPIRLS_Bernoulli(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<Real> mesh_time, InputHandler& inputData, VectorXr mu0):
+        FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, mesh_time, inputData, mu0, false, 1){};
 };
 
 
@@ -199,6 +207,8 @@ class FPIRLS_Poisson : public FPIRLS <InputHandler, Integrator, ORDER, mydim, nd
 
     FPIRLS_Poisson(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0):
       FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, inputData, mu0, false, 1){};
+    FPIRLS_Poisson(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<Real> mesh_time, InputHandler& inputData, VectorXr mu0):
+      FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, mesh_time, inputData, mu0, false, 1){};
 
 };
 
@@ -223,6 +233,8 @@ class FPIRLS_Exponential : public FPIRLS <InputHandler, Integrator, ORDER, mydim
 
     FPIRLS_Exponential(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0):
       FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, inputData, mu0, false, 1){};
+    FPIRLS_Exponential(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<double> mesh_time, InputHandler& inputData, VectorXr mu0):
+      FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, mesh_time, inputData, mu0, false, 1){};
 
 };
 
@@ -248,6 +260,8 @@ class FPIRLS_Gamma : public FPIRLS <InputHandler, Integrator, ORDER, mydim, ndim
 
     FPIRLS_Gamma(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
       FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, inputData, mu0, scale_parameter_flag, scale_param){};
+    FPIRLS_Gamma(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<double> mesh_time, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, mesh_time, inputData, mu0, scale_parameter_flag, scale_param){};
 
 };
 

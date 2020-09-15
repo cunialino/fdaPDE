@@ -128,7 +128,16 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& loca
 		 									max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambda_(lambdaS), GCV_GAM_(GCV)
 {;}
 
+template<typename RegressionHandler>
+RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& locations, std::vector<Real>& time_locations, VectorXr& observations, UInt order,
+									std::vector<Real>& lambdaS, std::vector<Real>& lambdaT, MatrixXr& covariates, MatrixXi& incidenceMatrix,
+									std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, VectorXr& ic, bool flag_mass, bool flag_parabolic, bool DOF, bool GCV, UInt search,
+                                    Real tune, bool arealDataAvg, UInt max_num_iterations, Real threshold):
+		 RegressionData(locations, time_locations, observations, order, lambdaS, lambdaT, covariates, incidenceMatrix, bc_indices, bc_values, ic, flag_mass, flag_parabolic, DOF,
+                        GCV, search, tune, arealDataAvg),
+         max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambda_(lambdaS), GCV_GAM_(GCV)
 
+{;}
 
 
 #ifdef R_VERSION_
@@ -328,7 +337,21 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP Rb
     this->GCV_ = false;
 }
 
+template<typename RegressionHandler>
+RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT, SEXP Rcovariates,
+						SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP GCV, SEXP RGCVmethod,
+						SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rmax_num_iteration, SEXP Rthreshold):
+    RegressionData( Rlocations,  RbaryLocations,  Rtime_locations,  Robservations,  Rorder,  RlambdaS,  RlambdaT,  Rcovariates,
+						 RincidenceMatrix,  RBCIndices,  RBCValues,  Rflag_mass,  Rflag_parabolic,  Ric,  GCV,  RGCVmethod,
+						 Rnrealizations,  DOF,  RDOF_matrix,  Rsearch,  Rtune,  RarealDataAvg)
 
+{
+	threshold_ =  REAL(Rthreshold)[0];
+    initialObservations_ = this->observations_;
+    global_lambda_ = this->lambdaS_;
+    GCV_GAM_ = this->GCV_; 
+    this->GCV_ = false;
+}
 
 void RegressionDataEllipticSpaceVarying::print(std::ostream & out) const
 {
