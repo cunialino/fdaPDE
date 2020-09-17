@@ -80,7 +80,6 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
     
     // start the iterative method for the lambda index i
     while(stopping_criterion(i)){ 
-        std::cerr << "Iteration: " << n_iterations[i] << " \n\n\n" << std::endl;
     
       // STEP (1)
       

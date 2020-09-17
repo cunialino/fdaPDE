@@ -777,7 +777,8 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     }
 
     ## set of lambdas for GCV in IC estimation
-    lambdaSIC <- 10^-1
+    lambdaSIC <- 10^seq(-7,3,0.1)
+    lambdaSIC <- as.matrix(lambdaSIC)
     storage.mode(lambdaSIC) <- "double"
     ## call the smoothing function with initial observations to estimates the IC
     print("Estimating IC")
@@ -804,6 +805,30 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     observations = observations[(NobsIC+1):length(observations)]
     print("done")
     ## shifting the lambdas interval if the best lambda is the smaller one and retry smoothing
+    if((ICsol[[3]][1]+1)==1)
+    {
+      lambdaSIC <- 10^seq(-9,-7,0.1)
+      lambdaSIC <- as.matrix(lambdaSIC)
+      storage.mode(lambdaSIC) <- "double"
+      ICsol <- .Call("gam_Laplace", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+    }
+    else
+    {
+      ## shifting the lambdas interval if the best lambda is the higher one and retry smoothing
+      if((ICsol[[3]][1]+1)==length(lambdaSIC))
+      {
+        lambdaSIC <- 10^seq(3,5,0.1)
+        lambdaSIC <- as.matrix(lambdaSIC)
+        storage.mode(lambdaSIC) <- "double"
+        ICsol <- .Call("gam_Laplace", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+      }
+    }
     
   }
   IC <- as.matrix(IC)

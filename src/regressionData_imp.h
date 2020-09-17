@@ -346,6 +346,8 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP Rb
 						 Rnrealizations,  DOF,  RDOF_matrix,  Rsearch,  Rtune,  RarealDataAvg)
 
 {
+
+	max_num_iterations_ = INTEGER(Rmax_num_iteration)[0];
 	threshold_ =  REAL(Rthreshold)[0];
     initialObservations_ = this->observations_;
     global_lambda_ = this->lambdaS_;

@@ -681,8 +681,6 @@ template<typename A>
 void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim>::apply(EOExpr<A> oper, const ForcingTerm & u)
 {
 
-    if(isGAM)
-        std::cerr << "MixedFERegression apply" << std::endl;
 	UInt nnodes = N_*M_;
 	FiniteElement<IntegratorSpace, ORDER, mydim, ndim> fe;
 
@@ -719,8 +717,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
         isSTComputed = true;
 	}
 
-    if(isGAM)
-        std::cerr << "Matrix computed" << std::endl;
 	VectorXr rightHandData;
 	getRightHandData(rightHandData); //updated
 	this->_rightHandSide = VectorXr::Zero(2*nnodes);
@@ -736,8 +732,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 	VectorXr rhs= _rightHandSide;
 
-    if(isGAM)
-        std::cerr << "Starting for loops" << std::endl;
 	for(UInt s = 0; s<regressionData_.getLambdaS().size(); ++s)
 	{
 		for(UInt t = 0; t<regressionData_.getLambdaT().size(); ++t)
@@ -753,30 +747,21 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 			SpMat NWblock;
 
 			// build right side of NWblock
-            if(regressionData_.getWeightsMatrix().size() == 0){
-
-                std::cerr << "SI" << std::endl;
+            if(regressionData_.getWeightsMatrix().size() == 0) // no weights
 				NWblock = psi_;
-            } // no weights
 			else
 				NWblock = regressionData_.getWeightsMatrix().asDiagonal()*psi_;
 
-            std::cerr << "NWblock is an " << NWblock.rows() << "x" << NWblock.cols() << " matrix" << std::endl;
-            std::cerr << "Psi is an " << psi_.rows() << "x" << psi_.cols() << " matrix" << std::endl;
-            std::cerr << "Building left NWBlock...";
 			// build left side of NWblock
 			if(regressionData_.getNumberOfRegions()==0) // pointwise data
 			    NWblock=psi_.transpose()*NWblock;
 			else                                        // areal data: need to add the diag(|D_1|,...,|D_N|)
 			    NWblock=psi_.transpose()*A_.asDiagonal()*NWblock;
-            std::cerr << "DONE!" << std::endl;
 
 			if(regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic())
 				NWblock+=lambdaT*Ptk_;
 
-            std::cerr << "NoCovMATRIX..."; 
 			this->buildMatrixNoCov(NWblock, R1_lambda, R0_lambda);
-            std::cerr << "DONE!" << std::endl;
 
 			//! right-hand side correction for space varying PDEs
 			if(this->isSpaceVarying)
@@ -784,7 +769,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 			    _rightHandSide.bottomRows(nnodes)= (-lambdaS)*rhs_ft_correction_;
 			}
 
-            std::cerr << "Applying rhs correction...";
 			//! righ-hand side correction for initial condition in parabolic case
 			if(regressionData_.isSpaceTime() && regressionData_.getFlagParabolic())
 			{
@@ -793,7 +777,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 					_rightHandSide(nnodes+i) -= lambdaS*rhs_ic_correction_(i);
 				}
 			}
-            std::cerr << "DONE" << std::endl;
 			//Applying boundary conditions if necessary
 			if(regressionData_.getDirichletIndices().size() != 0)  // if areal data NO BOUNDARY CONDITIONS
 				addDirichletBC();
@@ -802,7 +785,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 			// system solution
 			_solution(s,t) = this->template system_solve(this->_rightHandSide);
-
 			if(regressionData_.computeGCV())
 			{
 				if (regressionData_.computeDOF())
