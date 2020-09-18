@@ -20,7 +20,7 @@ class FPIRLS_Base {
 
    const MeshHandler<ORDER, mydim, ndim> &mesh_;
    InputHandler& inputData_; //!< It contains the data of the problem (RegressionDataGAM)
-   MixedFERegression<InputHandler, Integrator,ORDER, IntegratorGaussP3, 0, 0, mydim, ndim>  regression_;
+   MixedFERegression<InputHandler, Integrator,ORDER, IntegratorGaussP5, 3, 2, mydim, ndim>  regression_;
    std::vector<Real> mesh_time_;
 
   

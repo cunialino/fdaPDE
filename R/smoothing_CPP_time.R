@@ -783,7 +783,7 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     ## call the smoothing function with initial observations to estimates the IC
     ICsol <- .Call("gam_Laplace", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
                  mydim, ndim, lambdaSIC, covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
-                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS=5, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+                 T, as.integer(1), nrealizations, FAMILY, as.integer(5), threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
 
     if(nrow(covariates)!=0)
     {
