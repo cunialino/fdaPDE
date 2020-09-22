@@ -142,7 +142,7 @@ checkSmoothingParameters_time<-function(locations = NULL, time_locations=NULL, o
   ans
 }
 
-checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NULL, observations, FEMbasis, time_mesh=NULL, lambdaS, lambdaT = 1, covariates = NULL, PDE_parameters=NULL, incidence_matrix = NULL, BC = NULL, FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, IC = NULL, GCV = FALSE, DOF=FALSE, DOF_matrix=NULL, space_varying, ndim, mydim, incidence_matrix_time)
+checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NULL, observations, FEMbasis, time_mesh=NULL, lambdaS, lambdaT = 1, covariates = NULL, PDE_parameters=NULL, incidence_matrix = NULL, BC = NULL, FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, IC = NULL, GCV = FALSE, DOF=FALSE, DOF_matrix=NULL, space_varying, ndim, mydim, incidence_matrix_time= NULL)
 {
   #################### Parameter Check #########################
   if(ncol(observations) < 1)
@@ -155,7 +155,10 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NUL
       stop("'time_locations' must be a column vector")
     if (ncol(observations) != nrow(time_locations))
       stop("'observations' must be a #locations x #time_locations matrix")
-  }
+  }else{
+    if (is.null(incidence_matrix_time) && ncol(observations) != nrow(time_mesh))
+      stop("'observations' must be a #locations x #time_locations matrix")
+
 
   if(!is.null(time_mesh))
     if(ncol(time_mesh) != 1)
@@ -166,9 +169,13 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NUL
 
   if(!is.null(time_locations) && length(time_locations)==1)
       stop("'time_locations' must be of length bigger than 1. For only space problems use smooth.FEM")
+  if(!is.null(incidence_matrix_time)){
+      if(ncol(incidence_matrix_time) != length(time_mesh))
+          stop("'incidence_matrix_time' must be #intervals x #time nodes")
+  }
 
 
-  if(is.null(locations) && is.null(incidence_matrix))
+  if(is.null(locations) && is.null(incidence_matrix) && is.null(incidence_matrix_time))
   {
     if(!is.null(time_locations))
       if(ifelse(class(FEMbasis$mesh) == "mesh.2D", nrow(FEMbasis$mesh$nodes),FEMbasis$mesh$nnodes) != nrow(observations) || ncol(observations) != nrow(time_locations))
@@ -209,7 +216,7 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NUL
         if(nrow(locations) != nrow(observations))
           stop("'locations' and 'observations' have incompatible size;")
         if(!is.null(IC))
-          if((nrow(time_mesh)-1) != ncol(observations))
+          if(is.null(incidence_matrix_time) && (nrow(time_mesh)-1) != ncol(observations))
             stop("'time_mesh' and 'observations' have incompatible size;")
       }
       if(!FLAG_PARABOLIC)

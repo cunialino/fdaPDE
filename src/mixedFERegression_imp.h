@@ -359,12 +359,15 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	UInt nnodes = N_*M_;
 	UInt nlocations = regressionData_.getNumberofObservations();
 	rightHandData = VectorXr::Zero(nnodes);
+    VectorXr obs = regressionData_.getObservations();
+    if(regressionData_.getNumberOfIntervals() != 0)
+        obs = obs - obs_ic_correction_;
 
 	if (regressionData_.getCovariates().rows() == 0) //no covariate
 	{
 		if (regressionData_.isLocationsByNodes() && !regressionData_.isSpaceTime())
 		{
-				VectorXr tmp = LeftMultiplybyQ(regressionData_.getObservations());
+				VectorXr tmp = LeftMultiplybyQ(obs);
 				for (auto i=0; i<nlocations;++i)
 				{
 					auto index_i = regressionData_.getObservationsIndices()[i];
@@ -376,31 +379,25 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 			for (auto i=0; i<regressionData_.getObservationsIndices().size();++i)
 			{
 				auto index_i = regressionData_.getObservationsIndices()[i];
-                    std::cerr << index_i << " ";
-				rightHandData(index_i) = regressionData_.getObservations()[index_i];
+				rightHandData(index_i) = obs[index_i];
 			}
-                std::cerr << std::endl;
 		}
 		else if (regressionData_.getNumberOfRegions() == 0) //pointwise data
 		{
-            if(regressionData_.getIncidenceMatrixTime().rows() == 0)
-                rightHandData=psi_.transpose()*LeftMultiplybyQ(regressionData_.getObservations());
-            else{
-                rightHandData=psi_.transpose()*LeftMultiplybyQ(regressionData_.getObservations()-obs_ic_correction_);
-            }
+            rightHandData=psi_.transpose()*LeftMultiplybyQ(obs);
 		}
 		else //areal data
 		{
-			rightHandData=psi_.transpose()*A_.asDiagonal()*LeftMultiplybyQ(regressionData_.getObservations());
+			rightHandData=psi_.transpose()*A_.asDiagonal()*LeftMultiplybyQ(obs);
 		}
 	}
 	else if (regressionData_.getNumberOfRegions() == 0) //with covariates, pointwise data
 	{
-		rightHandData=psi_.transpose()*LeftMultiplybyQ(regressionData_.getObservations());
+		rightHandData=psi_.transpose()*LeftMultiplybyQ(obs);
 	}
 	else //with covariates, areal data
 	{
-		rightHandData=psi_.transpose()*A_.asDiagonal()*LeftMultiplybyQ(regressionData_.getObservations());
+		rightHandData=psi_.transpose()*A_.asDiagonal()*LeftMultiplybyQ(obs);
 	}
 }
 
@@ -640,8 +637,8 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
 		rhs_ic_correction_ = (1/(mesh_time_[1]-mesh_time_[0]))*(R0_*regressionData_.getInitialValues());
         if(regressionData_.getNumberOfIntervals() != 0){
             obs_ic_correction_ = 0.5*kroneckerProduct(phi.leftCols(1), psi_)*regressionData_.getInitialValues();
-            std::cerr << phi.cols() << std::endl;
-            phi = phi.rightCols(M_-1);
+            phi = phi.rightCols(M_);
+
         }
 	}
 	else	// Separable case

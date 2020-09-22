@@ -166,6 +166,8 @@ smooth.FEM.time<-function(locations = NULL, time_locations=NULL, observations, F
     DOF_matrix = as.matrix(DOF_matrix)
   if(!is.null(incidence_matrix))
     incidence_matrix = as.matrix(incidence_matrix)
+  if(!is.null(incidence_matrix_time))
+    incidence_matrix_time = as.matrix(incidence_matrix_time)
   if(!is.null(IC))
     IC = as.matrix(IC)
   if(!is.null(BC))
