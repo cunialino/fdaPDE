@@ -22,18 +22,18 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 	Real pen=10e20;
 
-	for( auto i=0; i<nbc_indices; i++)
-	 {
-			id1=bc_indices[i];
-			id3=id1+nnodes;
+    for( auto i=0; i<nbc_indices; i++)
+    {
+            id1=bc_indices[i];
+            id3=id1+nnodes;
 
-			matrixNoCov_.coeffRef(id1,id1)=pen;
-			matrixNoCov_.coeffRef(id3,id3)=pen;
+            matrixNoCov_.coeffRef(id1,id1)=pen;
+            matrixNoCov_.coeffRef(id3,id3)=pen;
 
 
-			_rightHandSide(id1)=bc_values[i]*pen;
-			_rightHandSide(id3)=0;
-	 }
+            _rightHandSide(id1)=bc_values[i]*pen;
+            _rightHandSide(id3)=0;
+    }
 
 	matrixNoCov_.makeCompressed();
 }
@@ -790,9 +790,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
                 SpMat IN(N_, N_);
                 IN.setIdentity();
                 SpMat GammaT(N_*M_, N_*M_);
-                std::cerr << Gammas.rows() << " " << Gammas.cols() << " kron " << IN.rows() << " " << IN.cols() << std::endl;
                 GammaT = Eigen::kroneckerProduct(Gammas, IN);
-                std::cerr << NWblock.rows() << " " << NWblock.cols() << " x " << GammaT.rows() << std::endl;
                 NWblock = NWblock*GammaT;
             }
 

@@ -840,6 +840,11 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
 
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+  BC$BC_indices = rep((0:(M-1))*nrow(FEMbasis$mesh$nodes),each=length(BC$BC_indices)) + rep(BC$BC_indices,M)
+  BC$BC_values = rep(BC$BC_values,M)
+  storage.mode(BC$BC_indices) <- "integer"
+  storage.mode(BC$BC_values) <-"double"
 
 
   bigsol <- .Call("gam_Laplace_time",locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
