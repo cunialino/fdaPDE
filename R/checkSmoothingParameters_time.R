@@ -267,7 +267,7 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NUL
       stop("'BC_values' must be a column vector")
     if(nrow(BC$BC_indices)>ifelse(class(FEMbasis$mesh)=='mesh.2D',nrow(FEMbasis$mesh$nodes),FEMbasis$mesh$nnodes))
       stop("'BC_indices' longer than the mesh")
-    if(nrow(BC$BC_indices) != nrow(BC$BC_values))
+    if(nrow(BC$BC_values) %% nrow(BC$BC_indices) !=0)
       stop("'BC_indices' and 'BC_values' have incompatible size;")
 
     N=ifelse(class(FEMbasis$mesh) == "mesh.2D",nrow(FEMbasis$mesh$nodes),FEMbasis$mesh$nnodes)
