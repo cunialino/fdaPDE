@@ -158,6 +158,7 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NUL
   }else{
     if (is.null(incidence_matrix_time) && ncol(observations) != nrow(time_mesh))
       stop("'observations' must be a #locations x #time_locations matrix")
+  }
 
 
   if(!is.null(time_mesh))
