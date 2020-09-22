@@ -22,7 +22,7 @@ FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::FPIRLS_Base(const MeshH
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
 FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<Real> mesh_time, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
-    mesh_(mesh), inputData_(inputData), regression_(mesh, mesh_time, inputData_, true), scale_parameter_flag_(scale_parameter_flag), _scale_param(scale_param), mesh_time_(mesh_time)
+    mesh_(mesh), inputData_(inputData), regression_(mesh, mesh_time, inputData_), scale_parameter_flag_(scale_parameter_flag), _scale_param(scale_param), mesh_time_(mesh_time)
 {
   //initialization of mu, current_J_values and past_J_values.
   for(UInt j=0; j< inputData.getLambdaS().size() ; j++){
@@ -205,10 +205,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_mu(UInt& l
 
   
   for(UInt j=0; j < W_beta.size(); j++){
-      if(_fn_hat(lambda_index, 0)(j) == 0)
-          std::cerr << "Sto dividendo per 0!!!!" << std::endl;
-      else 
-        mu_[lambda_index](j) = inv_link(W_beta[j] + _fn_hat(lambda_index,0)(j));
+    mu_[lambda_index](j) = inv_link(W_beta[j] + _fn_hat(lambda_index,0)(j));
   }
 }
 

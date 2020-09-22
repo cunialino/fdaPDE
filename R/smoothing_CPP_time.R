@@ -1,4 +1,4 @@
-CPP_smooth.FEM.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV ,GCVMETHOD = 2, nrealizations = 100, DOF=TRUE,DOF_matrix=NULL, search, GCV.inflation.factor = 1, areal.data.avg = TRUE)
+CPP_smooth.FEM.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV ,GCVMETHOD = 2, nrealizations = 100, DOF=TRUE,DOF_matrix=NULL, search, GCV.inflation.factor = 1, areal.data.avg = TRUE, incidence_matrix_time = NULL)
 {
   # Indexes in C++ starts from 0, in R from 1, opporGCV.inflation.factor transformation
 
@@ -24,6 +24,10 @@ CPP_smooth.FEM.time<-function(locations, bary.locations, time_locations, observa
   if(is.null(incidence_matrix))
   {
     incidence_matrix<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(incidence_matrix_time)){
+      incidence_matrix_time <- matrix(nrow = 0, ncol = 0)
   }
 
   if(is.null(IC))
@@ -186,7 +190,7 @@ CPP_smooth.FEM.time<-function(locations, bary.locations, time_locations, observa
   ## Call C++ function
   bigsol <- .Call("regression_Laplace_time", locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
                   mydim, ndim, lambdaS, lambdaT, covariates, incidence_matrix, BC$BC_indices, BC$BC_values, FLAG_MASS, FLAG_PARABOLIC,
-                  IC, GCV, GCVMETHOD, nrealizations, DOF, DOF_matrix, search, GCV.inflation.factor, areal.data.avg, PACKAGE = "fdaPDE")
+                  IC, GCV, GCVMETHOD, nrealizations, DOF, DOF_matrix, search, GCV.inflation.factor, areal.data.avg, incidence_matrix_time, PACKAGE = "fdaPDE")
   return(c(bigsol,ICsol))
 }
 
@@ -643,7 +647,7 @@ CPP_eval.FEM.time <- function(FEM.time, locations, time_locations, incidence_mat
   #Returning the evaluation matrix
   evalmat
 }
-CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV ,GCVMETHOD = 2, nrealizations = 100, DOF=TRUE,DOF_matrix=NULL, search, GCV.inflation.factor = 1, areal.data.avg = TRUE, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, mu0, scale.param) {
+CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV ,GCVMETHOD = 2, nrealizations = 100, DOF=TRUE,DOF_matrix=NULL, search, GCV.inflation.factor = 1, areal.data.avg = TRUE, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, mu0, scale.param, incidence_matrix_time) {
 
   FEMbasis$mesh$triangles = FEMbasis$mesh$triangles - 1
   FEMbasis$mesh$edges = FEMbasis$mesh$edges - 1
@@ -668,6 +672,10 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
   if(is.null(incidence_matrix))
   {
     incidence_matrix<-matrix(nrow = 0, ncol = 1)
+  }
+  if(is.null(incidence_matrix_time))
+  {
+    incidence_matrix_time<-matrix(nrow = 0, ncol = 1)
   }
 
   if(is.null(IC))
@@ -837,6 +845,6 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
   bigsol <- .Call("gam_Laplace_time",locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
                   mydim, ndim, lambdaS, lambdaT, covariates, incidence_matrix, BC$BC_indices, BC$BC_values, FLAG_MASS, FLAG_PARABOLIC,
                   IC, GCV, GCVMETHOD, nrealizations, DOF, DOF_matrix, search, GCV.inflation.factor, areal.data.avg, FAMILY, max.steps.FPIRLS, mu0, scale.param, 
-                  threshold.FPIRLS, PACKAGE = "fdaPDE")
+                  threshold.FPIRLS, incidence_matrix_time, PACKAGE = "fdaPDE")
   return(c(bigsol, ICsol))
 }

@@ -69,6 +69,7 @@ class MixedFERegressionBase
 
 	VectorXr rhs_ft_correction_;	//!< right hand side correction for the forcing term:
 	VectorXr rhs_ic_correction_;	//!< Initial condition correction (parabolic case)
+    VectorXr obs_ic_correction_;    //!< observation correction for interval data
 	VectorXr _rightHandSide;      //!< A Eigen::VectorXr: Stores the system right hand side.
 	MatrixXv _solution; 		//!< A Eigen::MatrixXv: Stores the system solution.
 	MatrixXr _dof;       //!< A Eigen::MatrixXr storing the computed dofs
@@ -86,8 +87,6 @@ class MixedFERegressionBase
     bool isSTComputed = false; //used to check if space-time matrices have been built (for GAM, otherwise they keep increasing in size)
 
 	bool isSpaceVarying = false; //!< used to distinguish whether to use the forcing term u in apply() or not
-
-    bool isGAM= false; //!< used to distinguish whether to use the Gamma^~ matrix in NWBlock or not
 
 	//! A member function computing the Psi matrix
 	void setPsi();
@@ -124,8 +123,6 @@ class MixedFERegressionBase
 			mesh_(mesh), N_(mesh.num_nodes()), M_(1), regressionData_(regressionData), _dof(regressionData.getDOF_matrix()){};
 	MixedFERegressionBase(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real>& mesh_time, const InputHandler& regressionData):
   		mesh_(mesh), mesh_time_(mesh_time), N_(mesh.num_nodes()), M_(regressionData.getFlagParabolic()? mesh_time.size()-1 : mesh_time.size()+SPLINE_DEGREE-1), regressionData_(regressionData), _dof(regressionData.getDOF_matrix()){};
-	MixedFERegressionBase(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real>& mesh_time, const InputHandler& regressionData, bool isGAM_):
-        mesh_(mesh), mesh_time_(mesh_time), N_(mesh.num_nodes()), M_(regressionData.getFlagParabolic()? mesh_time.size()-1 : mesh_time.size()+SPLINE_DEGREE-1), regressionData_(regressionData), _dof(regressionData.getDOF_matrix()), isGAM(isGAM_) {};
 
 	//! The function solving the system, used by the children classes. Saves the result in _solution
 	/*!
@@ -179,8 +176,6 @@ public:
 			MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER,IntegratorTime,SPLINE_DEGREE,ORDER_DERIVATIVE,mydim,ndim>(mesh, regressionData){};
 	MixedFERegression(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real>& mesh_time, const InputHandler& regressionData):
 			MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER,IntegratorTime,SPLINE_DEGREE,ORDER_DERIVATIVE,mydim,ndim>(mesh, mesh_time, regressionData){};
-	MixedFERegression(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real>& mesh_time, const InputHandler& regressionData, bool isGAM_):
-        MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER,IntegratorTime,SPLINE_DEGREE,ORDER_DERIVATIVE,mydim,ndim>(mesh, mesh_time, regressionData, isGAM_){};
 
 	void apply()
 	{

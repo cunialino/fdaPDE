@@ -22,6 +22,8 @@ class  RegressionData{
 
 		UInt nRegions_; //!< For areal data.
 
+        UInt nIntervals_; //!< For interval data.
+
 		VectorXr WeightsMatrix_; //!< Weighted regression.
 
 		std::vector<Real> lambdaS_; //!< Space penalization.
@@ -33,6 +35,7 @@ class  RegressionData{
 		bool arealDataAvg_; //!< Is areal data averaged ?
 
 		Real tune_; //!< Tune parameter. It is involved in the GCV computation.
+        
 	private:
 
 		std::vector<Real> time_locations_;//!< Vector of the time locations
@@ -52,6 +55,9 @@ class  RegressionData{
 
 		//Areal data
 		MatrixXi incidenceMatrix_;
+
+        //Interval data
+		MatrixXi incidenceMatrixTime_;
 
 		//Other parameters
 		UInt order_;
@@ -84,6 +90,7 @@ class  RegressionData{
 		void setNrealizations(SEXP Rnrealizations);
 		void setDOF_matrix(SEXP RDOF_matrix);
 		void setIncidenceMatrix(SEXP RincidenceMatrix);
+	    void setIncidenceMatrixTime(SEXP RincidenceMatrixTime);
 		#endif
 
 
@@ -122,14 +129,14 @@ class  RegressionData{
 		
 		explicit RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT, SEXP Rcovariates,
 						SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP GCV, SEXP RGCVmethod,
-						SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg);
+						SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP RincidenceMatrixTime);
 		#endif
 
 		explicit RegressionData(std::vector<Point>& locations, VectorXr& observations, UInt order, std::vector<Real> lambdaS, MatrixXr& covariates, MatrixXi& incidenceMatrix, std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, bool DOF, bool GCV,  UInt search, Real tune, bool arealDataAvg);
 
 		explicit RegressionData(std::vector<Point>& locations, std::vector<Real>& time_locations, VectorXr& observations, UInt order,
 														std::vector<Real>& lambdaS, std::vector<Real>& lambdaT, MatrixXr& covariates, MatrixXi& incidenceMatrix,
-														std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, VectorXr& ic, bool flag_mass, bool flag_parabolic, bool DOF, bool GCV,  UInt search,  Real tune, bool arealDataAvg);
+														std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, VectorXr& ic, bool flag_mass, bool flag_parabolic, bool DOF, bool GCV,  UInt search,  Real tune, bool arealDataAvg, MatrixXi& incidenceMatrixTime);
 
 		explicit RegressionData(std::vector<Point>& locations, VectorXr& observations, UInt order, std::vector<Real> lambdaS, MatrixXr& covariates, VectorXr& WeightsMatrix, MatrixXi& incidenceMatrix, std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, bool DOF, bool GCV,  UInt search, Real tune, bool arealDataAvg);
 
@@ -146,6 +153,7 @@ class  RegressionData{
 		inline VectorXr const & getWeightsMatrix() const {return WeightsMatrix_;}
 		//! A method returning a reference to the incidence matrix
 		inline MatrixXi const & getIncidenceMatrix() const {return incidenceMatrix_;}
+		inline MatrixXi const & getIncidenceMatrixTime() const {return incidenceMatrixTime_;}
 		//! A method returning the number of observations
 		inline UInt const getNumberofObservations() const {return observations_.size();}
 		//! A method returning the number of space observations
@@ -158,6 +166,7 @@ class  RegressionData{
 		inline std::vector<Real> const & getTimeLocations() const {return time_locations_;}
 		//! A method returning the number of regions
 		inline UInt const getNumberOfRegions() const {return nRegions_;}
+		inline UInt const getNumberOfIntervals() const {return nIntervals_;}
 		inline bool isLocationsByNodes() const {return locations_by_nodes_;}
 		inline bool isLocationsByBarycenter() const {return locations_by_barycenter_;}
 		inline bool computeDOF() const {return DOF_;}
@@ -236,7 +245,7 @@ class  RegressionDataElliptic:public RegressionData
 				SEXP GCV,SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg);
 		explicit RegressionDataElliptic(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT, SEXP RK,
 				SEXP Rbeta, SEXP Rc, SEXP Rcovariates, SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric,
-				SEXP GCV,SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg);
+				SEXP GCV,SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP RincidenceMatrixTime);
 		#endif
 
 		explicit RegressionDataElliptic(std::vector<Point>& locations, VectorXr& observations, UInt order,
@@ -248,7 +257,7 @@ class  RegressionDataElliptic:public RegressionData
 		explicit RegressionDataElliptic(std::vector<Point>& locations, std::vector<Real>& time_locations, VectorXr& observations, UInt order,
 										std::vector<Real>& lambdaS, std::vector<Real>& lambdaT, Eigen::Matrix<Real,2,2>& K,	Eigen::Matrix<Real,2,1>& beta, Real c,
 										MatrixXr& covariates, MatrixXi& incidenceMatrix, std::vector<UInt>& bc_indices,	std::vector<Real>& bc_values, VectorXr& ic,
-										bool flag_mass, bool flag_parabolic, bool DOF, bool GCV, UInt search, Real tune, bool arealDataAvg );
+										bool flag_mass, bool flag_parabolic, bool DOF, bool GCV, UInt search, Real tune, bool arealDataAvg, MatrixXi & incidenceMatrixTime );
 
 		inline Eigen::Matrix<Real,2,2> const & getK() const {return K_;}
 		inline Eigen::Matrix<Real,2,1> const & getBeta() const {return beta_;}
@@ -293,7 +302,7 @@ class RegressionDataEllipticSpaceVarying:public RegressionData
 				SEXP RBCValues, SEXP GCV, SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix,SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg);
 		explicit RegressionDataEllipticSpaceVarying(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT, SEXP RK,
 					  SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates, SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric,
-					  SEXP GCV, SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg);
+					  SEXP GCV, SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP RincidenceMatrixTime);
 		#endif
 
 
@@ -312,7 +321,7 @@ class RegressionDataEllipticSpaceVarying:public RegressionData
 													const std::vector<Eigen::Matrix<Real,2,1>, Eigen::aligned_allocator<Eigen::Matrix<Real,2,1> > >& beta,
 													const std::vector<Real>& c, const std::vector<Real>& u,
 													MatrixXr& covariates, MatrixXi& incidenceMatrix, std::vector<UInt>& bc_indices,	std::vector<Real>& bc_values, VectorXr& ic,
-													bool flag_mass, bool flag_parabolic, bool DOF,bool GCV, UInt search, Real tune, bool arealDataAvg);
+													bool flag_mass, bool flag_parabolic, bool DOF,bool GCV, UInt search, Real tune, bool arealDataAvg, MatrixXi & incidenceMatrixTime);
 
 		inline Diffusivity const & getK() const {return K_;}
 		inline Advection const & getBeta() const {return beta_;}
@@ -389,7 +398,7 @@ class  RegressionDataGAM : public RegressionHandler
 
 		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT,
 					  SEXP Rcovariates, SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP GCV, SEXP RGCVmethod,
-                    SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rmax_num_iteration, SEXP Rtreshold );
+                    SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rmax_num_iteration, SEXP Rtreshold, SEXP RincidenceMatrixTime);
 		#endif
 
 		//! A costructor for the Laplacian case
@@ -420,7 +429,7 @@ class  RegressionDataGAM : public RegressionHandler
 													std::vector<Real>& lambdaS, std::vector<Real>& lambdaT,
 													MatrixXr& covariates, MatrixXi& incidenceMatrix, std::vector<UInt>& bc_indices,	std::vector<Real>& bc_values, VectorXr& ic,
 													bool flag_mass, bool flag_parabolic, bool DOF,bool GCV, UInt search, Real tune, bool arealDataAvg, UInt max_num_iterations, 
-                                                    Real threshold);
+                                                    Real threshold, MatrixXi & incidenceMatrixTime);
 		//! A method returning the maximum iteration for the iterative method
 		inline UInt const & get_maxiter() const {return max_num_iterations_;}
 		//! A method returning the treshold 

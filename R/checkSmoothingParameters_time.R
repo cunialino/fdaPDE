@@ -142,7 +142,7 @@ checkSmoothingParameters_time<-function(locations = NULL, time_locations=NULL, o
   ans
 }
 
-checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NULL, observations, FEMbasis, time_mesh=NULL, lambdaS, lambdaT = 1, covariates = NULL, PDE_parameters=NULL, incidence_matrix = NULL, BC = NULL, FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, IC = NULL, GCV = FALSE, DOF=FALSE, DOF_matrix=NULL, space_varying, ndim, mydim)
+checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NULL, observations, FEMbasis, time_mesh=NULL, lambdaS, lambdaT = 1, covariates = NULL, PDE_parameters=NULL, incidence_matrix = NULL, BC = NULL, FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, IC = NULL, GCV = FALSE, DOF=FALSE, DOF_matrix=NULL, space_varying, ndim, mydim, incidence_matrix_time)
 {
   #################### Parameter Check #########################
   if(ncol(observations) < 1)
@@ -154,9 +154,6 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NUL
     if(ncol(time_locations) != 1)
       stop("'time_locations' must be a column vector")
     if (ncol(observations) != nrow(time_locations))
-      stop("'observations' must be a #locations x #time_locations matrix")
-  }else{
-    if (ncol(observations) != nrow(time_mesh))
       stop("'observations' must be a #locations x #time_locations matrix")
   }
 

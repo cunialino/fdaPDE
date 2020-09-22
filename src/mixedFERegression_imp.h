@@ -5,6 +5,7 @@
 #include <chrono>
 #include <random>
 #include <fstream>
+#include <unsupported/Eigen/KroneckerProduct>
 
 #include "R_ext/Print.h"
 
@@ -375,12 +376,18 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 			for (auto i=0; i<regressionData_.getObservationsIndices().size();++i)
 			{
 				auto index_i = regressionData_.getObservationsIndices()[i];
+                    std::cerr << index_i << " ";
 				rightHandData(index_i) = regressionData_.getObservations()[index_i];
 			}
+                std::cerr << std::endl;
 		}
 		else if (regressionData_.getNumberOfRegions() == 0) //pointwise data
 		{
-			rightHandData=psi_.transpose()*LeftMultiplybyQ(regressionData_.getObservations());
+            if(regressionData_.getIncidenceMatrixTime().rows() == 0)
+                rightHandData=psi_.transpose()*LeftMultiplybyQ(regressionData_.getObservations());
+            else{
+                rightHandData=psi_.transpose()*LeftMultiplybyQ(regressionData_.getObservations()-obs_ic_correction_);
+            }
 		}
 		else //areal data
 		{
@@ -611,6 +618,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 template<typename InputHandler, typename IntegratorSpace, UInt ORDER, typename IntegratorTime, UInt SPLINE_DEGREE, UInt ORDER_DERIVATIVE, UInt mydim, UInt ndim>
 void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim>::buildSpaceTimeMatrices()
 {
+    unsigned n = regressionData_.getNumberofSpaceObservations(), m = regressionData_.getNumberOfIntervals();
 	SpMat IM(M_,M_);
 	SpMat phi;
 
@@ -621,9 +629,20 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
 		SpMat L = FiniteDifference.getDerOpL(); // Matrix of finite differences
 		IM.setIdentity();
 		LR0k_ = kroneckerProduct(L,R0_);
-		phi = IM;
+        if(m == 0)
+    		phi = IM;
+        else {
+            MatrixXi beta = regressionData_.getIncidenceMatrixTime();
+            phi = beta.cast<double>().sparseView();
+            
+        }
 		//! right hand side correction for the initial condition:
 		rhs_ic_correction_ = (1/(mesh_time_[1]-mesh_time_[0]))*(R0_*regressionData_.getInitialValues());
+        if(regressionData_.getNumberOfIntervals() != 0){
+            obs_ic_correction_ = 0.5*kroneckerProduct(phi.leftCols(1), psi_)*regressionData_.getInitialValues();
+            std::cerr << phi.cols() << std::endl;
+            phi = phi.rightCols(M_-1);
+        }
 	}
 	else	// Separable case
 	{
@@ -650,8 +669,11 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
 	SpMat psi_temp =  psi_;
 	SpMat R1_temp = R1_;
 	SpMat R0_temp = R0_;
-	psi_.resize(N_*M_,N_*M_);
-	psi_ = kroneckerProduct(phi,psi_temp);
+    if(m == 0)
+        psi_.resize(N_*M_,N_*M_);
+    else
+        psi_.resize(m*n, N_*M_);
+	kroneckerProduct(phi,psi_temp);
 	addNA();
 	R1_.resize(N_*M_,N_*M_);
 	R1_ = kroneckerProduct(IM,R1_temp);
@@ -760,6 +782,19 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 			if(regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic())
 				NWblock+=lambdaT*Ptk_;
+            if(regressionData_.getNumberOfIntervals() != 0){
+                SpMat Gammas(M_, M_);
+                for(int i = 0; i < Gammas.rows()-1; i++)
+                    Gammas.insert(i, i) = 1;
+                Gammas.insert(Gammas.rows()-1, Gammas.rows()-1) = 0.5;
+                SpMat IN(N_, N_);
+                IN.setIdentity();
+                SpMat GammaT(N_*M_, N_*M_);
+                std::cerr << Gammas.rows() << " " << Gammas.cols() << " kron " << IN.rows() << " " << IN.cols() << std::endl;
+                GammaT = Eigen::kroneckerProduct(Gammas, IN);
+                std::cerr << NWblock.rows() << " " << NWblock.cols() << " x " << GammaT.rows() << std::endl;
+                NWblock = NWblock*GammaT;
+            }
 
 			this->buildMatrixNoCov(NWblock, R1_lambda, R0_lambda);
 
@@ -980,7 +1015,7 @@ class MixedFERegression<GAMDataLaplace, IntegratorSpace, ORDER, IntegratorTime, 
 {
 public:
 	MixedFERegression(const MeshHandler<ORDER, mydim, ndim>& mesh, const RegressionData& regressionData):MixedFERegressionBase<RegressionData, IntegratorSpace, ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim> (mesh, regressionData){};
-	MixedFERegression(const MeshHandler<ORDER, mydim, ndim>& mesh, std::vector<double> mesh_time, const RegressionData& regressionData, bool isGAM):MixedFERegressionBase<RegressionData, IntegratorSpace, ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim> (mesh, mesh_time, regressionData, isGAM){};
+	MixedFERegression(const MeshHandler<ORDER, mydim, ndim>& mesh, std::vector<double> mesh_time, const RegressionData& regressionData):MixedFERegressionBase<RegressionData, IntegratorSpace, ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim> (mesh, mesh_time, regressionData){};
 
 	void apply()
 	{
