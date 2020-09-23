@@ -635,10 +635,9 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
         }
 		//! right hand side correction for the initial condition:
 		rhs_ic_correction_ = (1/(mesh_time_[1]-mesh_time_[0]))*(R0_*regressionData_.getInitialValues());
-        if(regressionData_.getNumberOfIntervals() != 0){
+        if(m != 0){
             obs_ic_correction_ = 0.5*kroneckerProduct(phi.leftCols(1), psi_)*regressionData_.getInitialValues();
             phi = phi.rightCols(M_);
-
         }
 	}
 	else	// Separable case
@@ -670,7 +669,7 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
         psi_.resize(N_*M_,N_*M_);
     else
         psi_.resize(m*n, N_*M_);
-	kroneckerProduct(phi,psi_temp);
+	psi_ = kroneckerProduct(phi,psi_temp);
 	addNA();
 	R1_.resize(N_*M_,N_*M_);
 	R1_ = kroneckerProduct(IM,R1_temp);
@@ -787,6 +786,9 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
                 SpMat IN(N_, N_);
                 IN.setIdentity();
                 SpMat GammaT(N_*M_, N_*M_);
+                /* kroneckerProduct non funziona, da il seguente errore:
+                 * free(): invalid next size (normal):  <23-09-20, Elia Cunial> */
+                //GammaT = kroneckerProduct(Gammas, IN);
                 GammaT = Eigen::kroneckerProduct(Gammas, IN);
                 NWblock = NWblock*GammaT;
             }
