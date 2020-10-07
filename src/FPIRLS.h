@@ -264,6 +264,29 @@ class FPIRLS_Gamma : public FPIRLS <InputHandler, Integrator, ORDER, mydim, ndim
       FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, mesh_time, inputData, mu0, scale_parameter_flag, scale_param){};
 
 };
+template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
+class FPIRLS_Gauss : public FPIRLS <InputHandler, Integrator, ORDER, mydim, ndim> {
+
+    protected:
+
+      inline Real link(const Real& mu)const{ return mu ; }
+
+      inline Real link_deriv(const Real& mu)const{ return 1; }
+
+      inline Real inv_link(const Real& theta)const{ return theta; }
+
+      inline Real var_function(const Real& mu)const{ return 1 ;}
+
+      inline Real dev_function(const Real&mu, const Real& x)const{ return 2*(((x-mu)/mu)-log(x/mu)); }
+
+    public:
+
+    FPIRLS_Gauss(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, inputData, mu0, scale_parameter_flag, scale_param){};
+    FPIRLS_Gauss(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<double> mesh_time, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS<InputHandler, Integrator, ORDER, mydim, ndim>(mesh, mesh_time, inputData, mu0, scale_parameter_flag, scale_param){};
+
+};
 
 
 

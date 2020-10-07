@@ -2,6 +2,9 @@
 #define FPIRLS_IMP_H
 
 #include "FPIRLS.h"
+#include <fstream>
+#include <string>
+#include <cmath>
 
 
 /*********** FPIRLS_base Methods ************/
@@ -166,7 +169,6 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(
 
 }
 
-
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
 void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(UInt& lambda_index){
   // compute the G matrix as G_ii = diag( g'(mu_i))
@@ -177,6 +179,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(UInt& la
     G_[lambda_index](i) = link_deriv(mu_[lambda_index](i));
   }
 
+
 }
 
 
@@ -186,8 +189,10 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_Weights(UI
 
   WeightsMatrix_[lambda_index].resize( mu_[lambda_index].size());
 
+  /* V(Y) = b''(theta) = 1/g'(mu) ==> W = 1/(g'(mu)^2*V(mu)) = 1/g'(mu):  <01-10-20, Elia Cunial> */
   for(auto i=0; i < mu_[lambda_index].size(); i++){
-    WeightsMatrix_[lambda_index](i) = 1/(pow(G_[lambda_index](i),2)*(var_function( mu_[lambda_index](i))));
+        WeightsMatrix_[lambda_index](i) = 1/G_[lambda_index](i);
+        
   }
 
 }

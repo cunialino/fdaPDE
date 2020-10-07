@@ -222,12 +222,12 @@ smooth.FEM.time<-function(locations = NULL, time_locations=NULL, observations, F
   }
 
   # FAMILY CHECK
-  family_admit = c("binomial", "exponential", "gamma", "poisson", "gaussian")
+  family_admit = c("binomial", "exponential", "gamma", "poisson", "gaussian", "Gaussian")
   if(sum(family==family_admit)==0 ){
    stop("'family' parameter required.\nCheck if it is one of the following: binomial, exponential, gamma, poisson, gaussian")
   }
   ################## End checking parameters, sizes and conversion #############################
-  if (family == 'gaussian') {
+  if (family == 'Gaussian') {
       
       if(class(FEMbasis$mesh) == 'mesh.2D' & is.null(PDE_parameters)){
 

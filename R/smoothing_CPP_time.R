@@ -27,7 +27,7 @@ CPP_smooth.FEM.time<-function(locations, bary.locations, time_locations, observa
   }
 
   if(is.null(incidence_matrix_time)){
-      incidence_matrix_time <- matrix(nrow = 0, ncol = 0)
+      incidence_matrix_time <- matrix(nrow = 0, ncol = 1)
   }
 
   if(is.null(IC))
@@ -69,6 +69,8 @@ CPP_smooth.FEM.time<-function(locations, bary.locations, time_locations, observa
   storage.mode(DOF_matrix) <- "double"
   incidence_matrix <- as.matrix(incidence_matrix)
   storage.mode(incidence_matrix) <- "integer"
+  incidence_matrix_time <- as.matrix(incidence_matrix_time)
+  storage.mode(incidence_matrix_time) <- "integer"
   storage.mode(ndim) <- "integer"
   storage.mode(mydim) <- "integer"
   storage.mode(lambdaS) <- "double"
@@ -224,6 +226,10 @@ CPP_smooth.FEM.PDE.time<-function(locations, bary.locations, time_locations, obs
   {
     incidence_matrix<-matrix(nrow = 0, ncol = 1)
   }
+  if(is.null(incidence_matrix_time))
+  {
+    incidence_matrix_time<-matrix(nrow = 0, ncol = 1)
+  }
 
   if(is.null(IC))
   {
@@ -264,6 +270,8 @@ CPP_smooth.FEM.PDE.time<-function(locations, bary.locations, time_locations, obs
   storage.mode(DOF_matrix) <- "double"
   incidence_matrix <- as.matrix(incidence_matrix)
   storage.mode(incidence_matrix) <- "integer"
+  incidence_matrix_time <- as.matrix(incidence_matrix_time)
+  storage.mode(incidence_matrix_time) <- "integer"
   storage.mode(ndim) <- "integer"
   storage.mode(mydim) <- "integer"
   storage.mode(lambdaS) <- "double"
@@ -564,7 +572,8 @@ CPP_smooth.FEM.PDE.sv.time<-function(locations, bary.locations, time_locations, 
 
   M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
   BC$BC_indices = rep((0:(M-1))*nrow(FEMbasis$mesh$nodes),each=length(BC$BC_indices)) + rep(BC$BC_indices,M)
-  BC$BC_values = rep(BC$BC_values,M)
+  if(length(BC$BC_indices) != length(BC$BC_values))
+      BC$BC_values = rep(BC$BC_values,M)
   storage.mode(BC$BC_indices) <- "integer"
   storage.mode(BC$BC_values) <-"double"
 
@@ -792,7 +801,7 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     ## call the smoothing function with initial observations to estimates the IC
     ICsol <- .Call("gam_Laplace", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
                  mydim, ndim, lambdaSIC, covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
-                 T, as.integer(1), nrealizations, FAMILY, as.integer(5), threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
 
     if(nrow(covariates)!=0)
     {

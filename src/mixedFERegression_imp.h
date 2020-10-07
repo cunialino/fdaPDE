@@ -6,6 +6,7 @@
 #include <random>
 #include <fstream>
 #include <unsupported/Eigen/KroneckerProduct>
+#include <fstream>
 
 #include "R_ext/Print.h"
 
@@ -19,6 +20,16 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	const std::vector<UInt>& bc_indices = regressionData_.getDirichletIndices();
 	const std::vector<Real>& bc_values = regressionData_.getDirichletValues();
 	UInt nbc_indices = bc_indices.size();
+    /*
+    SpMat tmp;
+    for(int i = 0; i < matrixNoCov_.rows(); i++){
+        auto it = std::find(bc_indices.begin(), bc_indices.end(), i);
+        if(it != bc_indices.end()){
+            tmp.conservativeResize(tmp.rows()+1, matrixNoCov_.cols());
+            tmp.row(tmp.rows()-1) = matrixNoCov_.row(i)
+        }
+
+    }*/
 
 	Real pen=10e20;
 
@@ -316,6 +327,7 @@ MatrixXr MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTim
 {
 
 	// Resolution of the system matrixNoCov * x1 = b
+    //std::cerr << "Determinant: " << matrixNoCovdec_.determinant() << std::endl;
 	MatrixXr x1 = matrixNoCovdec_.solve(b);
 	if (regressionData_.getCovariates().rows() != 0) {
 		// Resolution of G * x2 = V * x1
@@ -365,7 +377,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 	if (regressionData_.getCovariates().rows() == 0) //no covariate
 	{
-		if (regressionData_.isLocationsByNodes() && !regressionData_.isSpaceTime())
+		if (regressionData_.isLocationsByNodes() )
 		{
 				VectorXr tmp = LeftMultiplybyQ(obs);
 				for (auto i=0; i<nlocations;++i)
@@ -373,14 +385,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 					auto index_i = regressionData_.getObservationsIndices()[i];
 					rightHandData(index_i) = tmp(i);
 				}
-		}
-		else if (regressionData_.isLocationsByNodes() && regressionData_.isSpaceTime() && regressionData_.getFlagParabolic())
-		{
-			for (auto i=0; i<regressionData_.getObservationsIndices().size();++i)
-			{
-				auto index_i = regressionData_.getObservationsIndices()[i];
-				rightHandData(index_i) = obs[index_i];
-			}
 		}
 		else if (regressionData_.getNumberOfRegions() == 0) //pointwise data
 		{
@@ -734,7 +738,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 		buildSpaceTimeMatrices();
         isSTComputed = true;
 	}
-
 	VectorXr rightHandData;
 	getRightHandData(rightHandData); //updated
 	this->_rightHandSide = VectorXr::Zero(2*nnodes);

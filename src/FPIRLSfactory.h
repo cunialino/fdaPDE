@@ -107,6 +107,9 @@ class FPIRLSfactory
 		}else if(family=="gamma"){
 		    return make_unique<FPIRLS_Gamma<InputHandler, Integrator, ORDER,  mydim, ndim>>(mesh, mesh_time, inputData, mu0, scale_parameter, scale_parameter_flag);
 		}
+        else if ( family == "gaussian" ){
+		    return make_unique<FPIRLS_Gauss<InputHandler, Integrator, ORDER,  mydim, ndim>>(mesh, mesh_time, inputData, mu0, scale_parameter, scale_parameter_flag);
+        }
 
 		return std::unique_ptr<FPIRLS<InputHandler, Integrator, ORDER,  mydim,  ndim>>(nullptr);
 	}

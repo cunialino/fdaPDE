@@ -6,6 +6,7 @@ RegressionData::RegressionData(std::vector<Point>& locations, VectorXr& observat
 					order_(order), lambdaS_(lambdaS), bc_values_(bc_values), bc_indices_(bc_indices), DOF_(DOF), GCV_(GCV), flag_SpaceTime_(false), search_(search), tune_(tune), arealDataAvg_(arealDataAvg)
 {
 	nRegions_ = incidenceMatrix_.rows();
+    nIntervals_ = 0;
 	if(locations_.size()==0 && nRegions_==0)
 	{
 		locations_by_nodes_ = true;
@@ -40,7 +41,7 @@ RegressionData::RegressionData(std::vector<Point>& locations, VectorXr& observat
 					order_(order), lambdaS_(lambdaS), bc_values_(bc_values), bc_indices_(bc_indices), DOF_(DOF), GCV_(GCV), flag_SpaceTime_(false), search_(search), tune_(tune), arealDataAvg_(arealDataAvg)
 {
 	nRegions_ = incidenceMatrix_.rows();
-    nIntervals_ = incidenceMatrixTime_.rows();
+    nIntervals_ = 0;
 	if(locations_.size()==0 && nRegions_==0)
 	{
 			locations_by_nodes_ = true;
@@ -148,6 +149,7 @@ RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robser
 							SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg)
 {
 	flag_SpaceTime_=false;
+    nIntervals_ = 0;
 
 	setLocations(Rlocations);
 	setBaryLocations(RbaryLocations);
