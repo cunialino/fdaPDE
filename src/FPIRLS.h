@@ -24,6 +24,7 @@ class FPIRLS_Base {
    std::vector<Real> mesh_time_;
 
   
+   /* These four can just be VectorXr, no need to keep track of all of them (this would also make impementing separabe case easier):  <14-10-20, Elia Cunial> */
    std::vector<VectorXr> mu_; //!< Mean vector
    std::vector<VectorXr> pseudoObservations_; //! Pseudodata observations
    std::vector<VectorXr> G_; //!< diag(link_deriv(mu)) it is a vector since it would be more memory consuming to declere it as a matrix

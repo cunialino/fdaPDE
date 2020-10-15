@@ -72,6 +72,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 {
 	UInt nnodes = mesh_.num_nodes();
 	UInt nlocations = regressionData_.isSpaceTime() ? regressionData_.getNumberofSpaceObservations() : regressionData_.getNumberofObservations();
+    std::cerr << "nloc done" << std::endl;
 
 	psi_.resize(nlocations, nnodes);
 	if (regressionData_.isLocationsByNodes() & !regressionData_.isLocationsByBarycenter()) //pointwise data
@@ -619,10 +620,12 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 template<typename InputHandler, typename IntegratorSpace, UInt ORDER, typename IntegratorTime, UInt SPLINE_DEGREE, UInt ORDER_DERIVATIVE, UInt mydim, UInt ndim>
 void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim>::buildSpaceTimeMatrices()
 {
+    std::cerr << "Building..." << std::endl;
     unsigned n = regressionData_.getNumberofSpaceObservations(), m = regressionData_.getNumberOfIntervals();
 	SpMat IM(M_,M_);
 	SpMat phi;
 
+    std::cerr << "Entering Parabolic" << std::endl;
 	if(regressionData_.getFlagParabolic()) // Parabolic case
 	{
 		MixedFDRegression <InputHandler> FiniteDifference(mesh_time_,regressionData_);
@@ -633,6 +636,7 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
         if(m == 0)
     		phi = IM;
         else {
+            std::cerr << "Okay ci siamo" << std::endl;
             MatrixXi beta = regressionData_.getIncidenceMatrixTime();
             phi = beta.cast<double>().sparseView();
             
@@ -706,25 +710,30 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	UInt nnodes = N_*M_;
 	FiniteElement<IntegratorSpace, ORDER, mydim, ndim> fe;
 
+    std::cerr << "Starting apply in mixed reg" << std::endl;
 	if(regressionData_.getNumberOfRegions()>0 && !isAComputed){
 		setA();
 		isAComputed = true;
 	}
+    std::cerr << "D1" << std::endl;
 
 	if(!isPsiComputed){
 		setPsi();
 		isPsiComputed = true;
 	}
+    std::cerr << "D2" << std::endl;
 
 	typedef EOExpr<Mass> ETMass; Mass EMass; ETMass mass(EMass);
 	if(!isR1Computed){
 		Assembler::operKernel(oper, mesh_, fe, R1_);
 		isR1Computed = true;
 	}
+    std::cerr << "D3" << std::endl;
 	if(!isR0Computed){
 		Assembler::operKernel(mass, mesh_, fe, R0_);
 		isR0Computed = true;
 	}
+    std::cerr << "D4" << std::endl;
 
 	if(this->isSpaceVarying)
 	{
@@ -733,6 +742,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 	}
 
+    std::cerr << "building space time" << std::endl;
 	if (regressionData_.isSpaceTime() && not isSTComputed)
 	{
 		buildSpaceTimeMatrices();

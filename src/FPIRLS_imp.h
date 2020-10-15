@@ -67,6 +67,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
   	Assembler::forcingTerm(mesh_, fe, u, forcingTerm);
   }
 
+  std::cerr << "Entering FPIRLS loops" << std::endl;
   
   for(UInt i=0 ; i < LambdaS_len ; i++){//for-cycle for each spatial penalization (lambdaS). 
 
@@ -75,12 +76,13 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
 
     this->inputData_.setCurrentLambda(i); // set right lambda for the current iteration.
     
-    #ifdef R_VERSION_
+    /* useless output:  <14-10-20, Elia Cunial> */
+/*    #ifdef R_VERSION_
     Rprintf("Start FPIRLS for the lambda number %d \n", i+1);
     #else
     std::cout<<"Start FPIRLS for the lambda number "<<i+1<<std::endl;
     #endif
-    
+*/    
     // start the iterative method for the lambda index i
     while(stopping_criterion(i)){ 
     
@@ -92,6 +94,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
 
       // STEP (2)
       
+      std::cerr << "Update solution" << std::endl;
       this->inputData_.updatePseudodata(pseudoObservations_[i], WeightsMatrix_[i]);
       update_solution(i);
 
@@ -106,12 +109,13 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
 
     } //end while
     
+    /*
     #ifdef R_VERSION_
     Rprintf("\t n. iterations: %d\n \n", n_iterations[i]);
     #else
     std::cout<< "\t n. iterations: "<<n_iterations[i]<<"\n"<<std::endl;
     #endif
-    
+    */
     _J_minima.push_back(current_J_values[i][0]+current_J_values[i][1]); // compute the minimum value of the J fuctional 
 
     if(this->inputData_.getGCV_GAM()){ // compute GCV if it is required
@@ -224,6 +228,7 @@ bool FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::stopping_criterion
 
   if(n_iterations[lambda_index] > inputData_.get_maxiter()){
     do_stop_by_iteration = true;
+    std::cout << "Max iter ! " << std::endl;
   }
 
   if(n_iterations[lambda_index] > 1){
