@@ -27,6 +27,7 @@ class  RegressionData{
 		VectorXr WeightsMatrix_; //!< Weighted regression.
 
 		std::vector<Real> lambdaS_; //!< Space penalization.
+		std::vector<Real> lambdaT_;	//time penalization
 
 		bool DOF_; //!< Do we need to compute DoF ?
 
@@ -62,7 +63,6 @@ class  RegressionData{
 		//Other parameters
 		UInt order_;
 
-		std::vector<Real> lambdaT_;	//time penalization
 		UInt GCVmethod_;
 		UInt nrealizations_;      // Number of relizations for the stochastic estimation of GCV
 
@@ -346,7 +346,8 @@ class  RegressionDataGAM : public RegressionHandler
 	private:
 		
 		VectorXr initialObservations_; //!< A copy of the true observations, which will not be overriden during FPIRLS algorithm.
-	    std::vector<Real> global_lambda_; //!< A copy of lambda vector for FPIRLS with multiple lambdas.
+	    std::vector<Real> global_lambdaS_; //!< A copy of lambda vector for FPIRLS with multiple lambdas.
+	    std::vector<Real> global_lambdaT_; //!< A copy of lambda vector for FPIRLS with multiple lambdas.
 		std::vector<UInt> initial_observations_indeces_; 
 	    UInt max_num_iterations_; //!< Max number of iterations allowed.
 	    Real threshold_; //!< Limit in difference among J_k and J_k+1 for which we stop FPIRLS.
@@ -437,7 +438,7 @@ class  RegressionDataGAM : public RegressionHandler
 		//! A method returning a reference to the observations vector
 		inline VectorXr const & getInitialObservations() const {return initialObservations_;}
     	//! A method returning the lambda used in the GAM data
-    	inline std::vector<Real> const & getGlobalLambda() const {return global_lambda_;}  
+    	inline std::array<Real, 2> getGlobalLambda(UInt& lambdaS_index, UInt& lambdaT_index) const {return std::array<Real, 2>{global_lambdaS_[lambdaS_index], global_lambdaT_[lambdaT_index]};}  
 		//! A method that return the initial observations
 		inline UInt const getNumberofInitialObservations() const {return initial_observations_indeces_.size();}
     	//! A method returning whether GCV computation is required or not.
@@ -446,7 +447,8 @@ class  RegressionDataGAM : public RegressionHandler
 		//! Update Pseudodata (observations and weights)
 		void updatePseudodata(VectorXr& z_, VectorXr& P){ this-> observations_ = z_; this-> WeightsMatrix_ = P; }
     	//! Set the current lambda, it is used for the GCV computation
-    	void setCurrentLambda(UInt lambda_index){ this->lambdaS_ = std::vector<Real>(1,global_lambda_[lambda_index]);}
+    	void setCurrentLambda(UInt lambdaS_index, UInt lambdaT_index){ this->lambdaS_ = std::vector<Real>(1,global_lambdaS_[lambdaS_index]);
+                                                                       this->lambdaT_ = std::vector<Real>(1,global_lambdaT_[lambdaT_index]);}
 
 };
 

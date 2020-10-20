@@ -683,10 +683,10 @@ SEXP GAM_skeleton(InputHandler &GAMData, SEXP Rmesh, SEXP Rmu0, std::string fami
 
   	const MatrixXv& solution = fpirls->getSolution();
   	const MatrixXr& dof = fpirls->getDOF();
-  	const std::vector<Real>& J_value = fpirls->get_J();
+  	const MatrixXr J_value = fpirls->get_J();
   	const MatrixXv& fn_hat = fpirls->getFunctionEst();
-  	const std::vector<Real> variance_est = fpirls->getVarianceEst();
-  	const std::vector<Real>& GCV = fpirls->getGCV();
+  	const MatrixXr& variance_est = fpirls->getVarianceEst();
+  	const MatrixXr& GCV = fpirls->getGCV();
 
   	const UInt bestLambda = fpirls->getBestLambdaS();
 
@@ -733,7 +733,7 @@ SEXP GAM_skeleton(InputHandler &GAMData, SEXP Rmesh, SEXP Rmu0, std::string fami
   	Real *rans2 = REAL(VECTOR_ELT(result, 2));
 	for(UInt i = 0; i < GCV.size(); i++)
 	{
-		rans2[i] = GCV[i];
+		rans2[i] = GCV( i );
 	}
 
 	// Copy best lambda
@@ -817,13 +817,13 @@ SEXP GAM_skeleton(InputHandler &GAMData, SEXP Rmesh, SEXP Rmu0, std::string fami
   	Real *rans13 = REAL(VECTOR_ELT(result, 13));
   	for(UInt i = 0; i < J_value.size(); i++)
 	{
-		rans13[i] = J_value[i];
+		rans13[i] = J_value( i );
 	}
 
 	//return scale parameter
 	Real *rans14 = REAL(VECTOR_ELT(result, 14));
 	for(UInt j = 0; j < variance_est.size(); j++){
-		rans14[j] = variance_est[j];
+		rans14[j] = variance_est( j );
 	}
   	
 	UNPROTECT(1);
@@ -862,12 +862,13 @@ SEXP GAM_skeleton_time(InputHandler &GAMData, SEXP Rmesh, SEXP Rmesh_time, SEXP 
 
   	const MatrixXv& solution = fpirls->getSolution();
   	const MatrixXr& dof = fpirls->getDOF();
-  	const std::vector<Real>& J_value = fpirls->get_J();
+  	const MatrixXr& J_value = fpirls->get_J();
   	const MatrixXv& fn_hat = fpirls->getFunctionEst();
-  	const std::vector<Real> variance_est = fpirls->getVarianceEst();
-  	const std::vector<Real>& GCV = fpirls->getGCV();
+  	const MatrixXr variance_est = fpirls->getVarianceEst();
+  	const MatrixXr GCV = fpirls->getGCV();
 
-  	const UInt bestLambda = fpirls->getBestLambdaS();
+  	const UInt bestLambdaS = fpirls->getBestLambdaS();
+  	const UInt bestLambdaT = fpirls->getBestLambdaT();
 
   	MatrixXv beta;
   	if(GAMData.getCovariates().rows()==0)
@@ -888,42 +889,54 @@ SEXP GAM_skeleton_time(InputHandler &GAMData, SEXP Rmesh, SEXP Rmesh_time, SEXP 
 	SEXP result = R_NilValue;
  	result = PROTECT(Rf_allocVector(VECSXP, 5+3+5+2));
 
-	SET_VECTOR_ELT(result, 0, Rf_allocMatrix(REALSXP, solution(0).size(), solution.rows()*solution.cols()));
+	SET_VECTOR_ELT(result, 0, Rf_allocMatrix(REALSXP, solution(0,0).size(), solution.rows()*solution.cols()));
 	SET_VECTOR_ELT(result, 1, Rf_allocMatrix(REALSXP, dof.rows(), dof.cols()));
-  	SET_VECTOR_ELT(result, 2, Rf_allocVector(REALSXP, GCV.size()));
+	SET_VECTOR_ELT(result, 2, Rf_allocMatrix(REALSXP, GCV.rows(), GCV.cols()));
 	SET_VECTOR_ELT(result, 3, Rf_allocVector(INTSXP, 2));
 	SET_VECTOR_ELT(result, 4, Rf_allocMatrix(REALSXP, beta(0,0).size(), beta.rows()*beta.cols()));
-	//return solution
-	Real *rans = REAL(VECTOR_ELT(result, 0));
-	for(UInt j = 0; j < solution.size(); j++)
-	{
-		for(UInt i = 0; i < solution(0).size(); i++)
-			rans[i + solution(0).size()*j] = solution(j)(i);
-	}
-	//return DoF
-	Real *rans1 = REAL(VECTOR_ELT(result, 1));
-	for(UInt i = 0; i < dof.size(); i++)
-	{
-		rans1[i] = dof(i);
-	}
 
-	//return GCV values
-  	Real *rans2 = REAL(VECTOR_ELT(result, 2));
-	for(UInt i = 0; i < GCV.size(); i++)
+	//! Copy solution
+	Real *rans = REAL(VECTOR_ELT(result, 0));
+	for(UInt i = 0; i < solution.rows(); i++)
 	{
-		rans2[i] = GCV[i];
+		for(UInt j = 0; j < solution.cols(); j++)
+		{
+			for(UInt k = 0; k < solution(0,0).size(); k++)
+				rans[k + solution(0,0).size()*i + solution(0,0).size()*solution.rows()*j] = solution.coeff(i,j)(k);
+		}
+	}
+	//! Copy dof matrix
+	Real *rans1 = REAL(VECTOR_ELT(result, 1));
+	for(UInt i = 0; i < dof.rows(); i++)
+	{
+		for(UInt j = 0; j < dof.cols(); j++)
+		{
+		rans1[i + dof.rows()*j] = dof.coeff(i,j);
+		}
+	}
+	//! Copy GCV matrix
+	Real *rans2 = REAL(VECTOR_ELT(result, 2));
+	for(UInt i = 0; i < GCV.rows(); i++)
+	{
+		for(UInt j = 0; j < GCV.cols(); j++)
+		{
+		rans2[i + GCV.rows()*j] = GCV.coeff(i,j);
+		}
 	}
 
 	// Copy best lambda
 	UInt *rans3 = INTEGER(VECTOR_ELT(result, 3));
-	rans3[0] = bestLambda;
+	rans3[0] = bestLambdaS;
+    rans3[1] = bestLambdaT;
 
-	//return beta hat
 	Real *rans4 = REAL(VECTOR_ELT(result, 4));
-	for(UInt j = 0; j < beta.size(); j++)
+	for(UInt i = 0; i < beta.rows(); i++)
 	{
-		for(UInt i = 0; i < beta(0).size(); i++)
-			rans4[i + beta(0).size()*j] = beta(j)(i);
+		for(UInt j = 0; j < beta.cols(); j++)
+		{
+			for(UInt k = 0; k < beta(0,0).size(); k++)
+				rans4[k + beta(0,0).size()*i + beta(0,0).size()*beta.rows()*j] = beta.coeff(i,j)(k);
+		}
 	}
 
 	//SEND TREE INFORMATION TO R
@@ -977,9 +990,9 @@ SEXP GAM_skeleton_time(InputHandler &GAMData, SEXP Rmesh, SEXP Rmesh_time, SEXP 
 
 
 	// GAM PARAMETER ESTIMATIONS
-	SET_VECTOR_ELT(result, 12, Rf_allocMatrix(REALSXP, fn_hat(0).size(), fn_hat.size()));
-	SET_VECTOR_ELT(result, 13, Rf_allocVector(REALSXP, J_value.size()));
-	SET_VECTOR_ELT(result, 14, Rf_allocVector(REALSXP, variance_est.size()));
+	SET_VECTOR_ELT(result, 12, Rf_allocMatrix(REALSXP, fn_hat(0, 0).size(), fn_hat.size()));
+	SET_VECTOR_ELT(result, 13, Rf_allocMatrix(REALSXP, J_value.rows(), J_value.cols()));
+	SET_VECTOR_ELT(result, 14, Rf_allocMatrix(REALSXP, variance_est.rows(), variance_est.cols()));
 
 	//return fn hat
 	Real *rans12 = REAL(VECTOR_ELT(result, 12));
@@ -990,16 +1003,23 @@ SEXP GAM_skeleton_time(InputHandler &GAMData, SEXP Rmesh, SEXP Rmesh_time, SEXP 
 	}
 	
 	//return J_value
-  	Real *rans13 = REAL(VECTOR_ELT(result, 13));
-  	for(UInt i = 0; i < J_value.size(); i++)
+    Real *rans13 = REAL(VECTOR_ELT(result, 13));
+	for(UInt i = 0; i < J_value.rows(); i++)
 	{
-		rans13[i] = J_value[i];
+		for(UInt j = 0; j < J_value.cols(); j++)
+		{
+		rans13[i + J_value.rows()*j] = J_value.coeff(i,j);
+		}
 	}
 
 	//return scale parameter
 	Real *rans14 = REAL(VECTOR_ELT(result, 14));
-	for(UInt j = 0; j < variance_est.size(); j++){
-		rans14[j] = variance_est[j];
+	for(UInt i = 0; i < variance_est.rows(); i++)
+	{
+		for(UInt j = 0; j < variance_est.cols(); j++)
+		{
+		rans14[i + variance_est.rows()*j] = variance_est.coeff(i,j);
+		}
 	}
 	UNPROTECT(1);
 

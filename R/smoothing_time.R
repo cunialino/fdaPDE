@@ -369,6 +369,14 @@ smooth.FEM.time<-function(locations = NULL, time_locations=NULL, observations, F
   }else{
     reslist=list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time, beta = beta, ICestimated=ICestimated, bary.locations = bary.locations)
   }
+  # GAM outputs
+ if(sum(family==c("binomial", "exponential", "gamma", "poisson")) == 1 ){  
+    fn.eval = bigsol[[13]]
+    J_minima = bigsol[[14]]   
+    variance.est=bigsol[[15]] 
+    if( variance.est[1]<0 ) variance.est = NULL
+    reslist=c(reslist, list(fn.eval = fn.eval, J_minima = J_minima, variance.est = variance.est) )
+}
 
   return(reslist)
 }

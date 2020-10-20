@@ -24,17 +24,17 @@ class FPIRLS_Base {
    std::vector<Real> mesh_time_;
 
   
-   /* These four can just be VectorXr, no need to keep track of all of them (this would also make impementing separabe case easier):  <14-10-20, Elia Cunial> */
-   std::vector<VectorXr> mu_; //!< Mean vector
-   std::vector<VectorXr> pseudoObservations_; //! Pseudodata observations
-   std::vector<VectorXr> G_; //!< diag(link_deriv(mu)) it is a vector since it would be more memory consuming to declere it as a matrix
-   std::vector<VectorXr> WeightsMatrix_; //!< (G^-2 * Var_function(mu)^-1) it is a vector because it is a diagonal matrix
+   /* These four can just be VectorXr, no need to keep track of all of them (this would also make implementing separabe case easier):  <14-10-20, Elia Cunial> */
+   VectorXr mu_; //!< Mean vector
+   VectorXr pseudoObservations_; //! Pseudodata observations
+   VectorXr G_; //!< diag(link_deriv(mu)) it is a vector since it would be more memory consuming to declere it as a matrix
+   VectorXr WeightsMatrix_; //!< (G^-2 * Var_function(mu)^-1) it is a vector because it is a diagonal matrix
 
    // the value of the functional is saved deparated (parametric and non-parametric part)
-   std::vector<std::array<Real,2>> current_J_values;
-   std::vector<std::array<Real,2>> past_J_values; //!< Stores the value of the functional J at each iteration in order to apply the stopping criterion
+   std::array<Real,2> current_J_values;
+   std::array<Real,2> past_J_values; //!< Stores the value of the functional J at each iteration in order to apply the stopping criterion
 
-   std::vector<UInt> n_iterations; //!< Current number of iteration of PIRLS
+   MatrixXi n_iterations; //!< Current number of iteration of PIRLS
 
    VectorXr forcingTerm;
    bool isSpaceVarying = false; //!< True only in space varying case.
@@ -42,38 +42,39 @@ class FPIRLS_Base {
    MatrixXv _solution; //!< Stores the system solution.
    MatrixXr _dof; //!< A matrix of VectorXr storing the computed dofs.
   
-   std::vector<Real> _GCV; //!< A vector storing GCV values.
-   std::vector<Real> _J_minima;//!< Stores the minimum value of the functional.
+   MatrixXr _GCV; //!< A vector storing GCV values.
+   MatrixXr _J_minima;//!< Stores the minimum value of the functional.
 
    // Evaluation of the solution in the locations and beta estimates
    MatrixXv _beta_hat;//!< Betas estimated if the model has covariates.
    MatrixXv _fn_hat; //!< Function coefficients estimated.
 
    UInt bestLambdaS_ = 0;  //!< Stores the index of the best lambdaS according to GCV.
+   UInt bestLambdaT_ = 0;
    Real _bestGCV = 10e20;  //!< Stores the value of the best GCV.
 
    bool scale_parameter_flag_; //!< True if the distribution has the scale parameter and if it is not a given input.
    Real _scale_param;
-   std::vector<Real> _variance_estimates; //!< Stores the variance estimates for each lambda.
+   MatrixXr _variance_estimates; //!< Stores the variance estimates for each lambda.
 
    //! A method that computes the pseudodata. It perform step (1) of f-PIRLS.
-   void compute_pseudoObs(UInt& lambda_index);
+   void compute_pseudoObs(UInt& lambdaS_index, UInt& lambdaT_index);
    //! A method that assembles G matrix.
-   void compute_G(UInt& lambda_index);
+   void compute_G(UInt& lambda_index, UInt& lambdaT_index);
    //! A method that assembles the weights matrix ( a diagonal matrix, hence it is stored as vector).
-   void compute_Weights(UInt& lambda_index);
+   void compute_Weights(UInt& lambda_index, UInt& lambdaT_index);
    //! A method that updates the solution. It perform step (2) of F-PIRLS.
-   void update_solution(UInt& lambda_index);
+   void update_solution(UInt& lambda_index, UInt& lambdaT_index);
    //! A method that updates mu vector. It perform step (3) of F-PIRLS.
-   void compute_mu(UInt& lambda_index);
+   void compute_mu(UInt& lambda_index, UInt& lambdaT_index);
    //! A method that stops PIRLS based on difference between functionals J_k J_k+1 or n_iterations > max_num_iterations .
-   bool stopping_criterion(UInt& lambda_index);
+   bool stopping_criterion(UInt& lambdaS_index, UInt& lambdaT_index);
    //! A method that computes and return the current value of the functional J. It is divided in parametric and non parametric part.
-   std::array<Real,2> compute_J(UInt& lambda_index);
+   std::array<Real,2> compute_J(UInt& lambda_index, UInt& lambdaT_index);
    //! A method that computes the GCV value for a given lambda.
-   void compute_GCV(UInt& lambda_index);
+   void compute_GCV(UInt& lambda_index, UInt& lambdaT_index);
    //! A method that computes the estimates of the variance. It depends on the scale flags: only the Gamma and InvGaussian distributions have the scale parameter.
-   void compute_variance_est();
+   void compute_variance_est(UInt & lambda_index, UInt& lambdaT_index);
 
    // link and other functions. Definited as pure virtual methods, the implementaton depend on the choosen distributions 
 
@@ -105,17 +106,18 @@ class FPIRLS_Base {
    //! A method returning the computed dofs of the model
    inline MatrixXr const & getDOF() const{return _dof;}
    //! A method returning the current value of J
-   inline std::vector<Real> const & get_J() const{return _J_minima;}
+   inline MatrixXr const & get_J() const{return _J_minima;}
    //! A inline member that returns a VectorXr, returns the final beta estimate.
    inline MatrixXv const & getBetaEst() const{return _beta_hat;}
    //! An inline member that returns a VectorXr, returns the final function estimates.
    inline MatrixXv const & getFunctionEst() const{return _fn_hat;}
    //! An inline member that returns the variance estimates.
-   inline std::vector<Real> const getVarianceEst() const{return  _variance_estimates;}
+   inline MatrixXr const getVarianceEst() const{return  _variance_estimates;}
    //! An inline member that returns a the computed (or not) GCV estimates. If GCV is not computed, -1 is returned
-   inline std::vector<Real> const & getGCV() const{return _GCV;}
+   inline MatrixXr const & getGCV() const{return _GCV;}
    //! A method returning the index of the best lambdaS according to GCV
    inline UInt getBestLambdaS(){return bestLambdaS_;}
+   inline UInt getBestLambdaT(){return bestLambdaT_;}
 
    
    //! A method returning the computed barycenters of the locationss

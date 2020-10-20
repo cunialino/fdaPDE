@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <cmath>
+#include "kronecker_product.h"
 
 
 /*********** FPIRLS_base Methods ************/
@@ -12,27 +13,23 @@
 // Constructor
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
 FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
-  mesh_(mesh), inputData_(inputData), regression_(mesh, inputData_), scale_parameter_flag_(scale_parameter_flag), _scale_param(scale_param)
+  mesh_(mesh), inputData_(inputData), regression_(mesh, inputData_), mu_(mu0), scale_parameter_flag_(scale_parameter_flag), _scale_param(scale_param)
 {
-  //initialization of mu, current_J_values and past_J_values.
-  for(UInt j=0; j< inputData.getLambdaS().size() ; j++){
-    mu_.push_back(mu0);
-    current_J_values.push_back(std::array<Real,2>{1,1});
-    past_J_values.push_back(std::array<Real,2>{1,1});
-  }
+  //initialization of mu, current_J_values and past_J_values.  for(UInt j=0; j< inputData.getLambdaS().size() ; j++){
+    //mu_.push_back(mu0);
+    current_J_values = std::array<Real,2>{1,1};
+    past_J_values = std::array<Real,2>{1,1};
 
 };
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
 FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, std::vector<Real> mesh_time, InputHandler& inputData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
-    mesh_(mesh), inputData_(inputData), regression_(mesh, mesh_time, inputData_), scale_parameter_flag_(scale_parameter_flag), _scale_param(scale_param), mesh_time_(mesh_time)
+    mesh_(mesh), inputData_(inputData), regression_(mesh, mesh_time, inputData_), mu_(mu0), scale_parameter_flag_(scale_parameter_flag), _scale_param(scale_param), mesh_time_(mesh_time)
 {
   //initialization of mu, current_J_values and past_J_values.
-  for(UInt j=0; j< inputData.getLambdaS().size() ; j++){
-    mu_.push_back(mu0);
-    current_J_values.push_back(std::array<Real,2>{1,1});
-    past_J_values.push_back(std::array<Real,2>{1,1});
-  }
+    current_J_values = std::array<Real,2>{1,1};
+    past_J_values = std::array<Real,2>{1,1};
+    //mu_.push_back(mu0);
 };
 
 
@@ -42,24 +39,31 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
   // f-PRILS implementation
   
   //Initialize the containers size, as LambdaS_len
-  const UInt LambdaS_len = mu_.size();
+  const UInt LambdaS_len = inputData_.getLambdaS().size();
+  const UInt LambdaT_len = inputData_.getLambdaT().size();
+  std::cerr << LambdaT_len << std::endl;
   
   // initialize the algorithm variables
+  /*
   G_.resize(LambdaS_len);
   WeightsMatrix_.resize(LambdaS_len);
   pseudoObservations_.resize(LambdaS_len);
-  n_iterations = std::vector<UInt>(LambdaS_len,0);
+  */
+  n_iterations.resize(LambdaS_len,LambdaT_len);
+  _variance_estimates.resize(LambdaS_len,LambdaT_len);
 
   // Initialize the outputs. The temporal dimension is not implemented, for this reason the 2nd dimension is set to 1.
   //
   /* Quando hai fatto tutto qua devi adattare la seconda dimensione per il caso separabile, quindi con LambdaT:  <07-09-20, Elia Cunial> */
-  if( this->inputData_.getCovariates().rows() > 0 )_beta_hat.resize(LambdaS_len,1);
-  _fn_hat.resize(LambdaS_len,1);
-  _dof.resize(LambdaS_len,1);
-  _solution.resize(LambdaS_len,1);
+  if( this->inputData_.getCovariates().rows() > 0 )_beta_hat.resize(LambdaS_len,LambdaT_len);
+  _fn_hat.resize(LambdaS_len,LambdaT_len);
+  _dof.resize(LambdaS_len,LambdaT_len);
+  _solution.resize(LambdaS_len,LambdaT_len);
    
-  _GCV.resize(LambdaS_len,-1);//If GCV is not computed the vector stores -1
-  
+  _GCV.resize(LambdaS_len, LambdaT_len);//If GCV is not computed the vector stores -1
+  _GCV.setConstant(-1);
+  _J_minima.resize(LambdaS_len, LambdaT_len);
+ 
 
   if(isSpaceVarying)
   {
@@ -67,69 +71,71 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
   	Assembler::forcingTerm(mesh_, fe, u, forcingTerm);
   }
 
-  std::cerr << "Entering FPIRLS loops" << std::endl;
-  
   for(UInt i=0 ; i < LambdaS_len ; i++){//for-cycle for each spatial penalization (lambdaS). 
+      for(UInt j = 0; j < LambdaT_len; j++){
+        current_J_values[0] = past_J_values[0] + 2*inputData_.get_treshold();
+        current_J_values[1] = past_J_values[1] + 2*inputData_.get_treshold();
 
-    current_J_values[i][0] = past_J_values[i][0] + 2*inputData_.get_treshold();
-    current_J_values[i][1] = past_J_values[i][1] + 2*inputData_.get_treshold();
-
-    this->inputData_.setCurrentLambda(i); // set right lambda for the current iteration.
-    
-    /* useless output:  <14-10-20, Elia Cunial> */
-/*    #ifdef R_VERSION_
-    Rprintf("Start FPIRLS for the lambda number %d \n", i+1);
-    #else
-    std::cout<<"Start FPIRLS for the lambda number "<<i+1<<std::endl;
-    #endif
-*/    
-    // start the iterative method for the lambda index i
-    while(stopping_criterion(i)){ 
-    
-      // STEP (1)
-      
-      compute_G(i);
-      compute_Weights(i);
-      compute_pseudoObs(i);
-
-      // STEP (2)
-      
-      std::cerr << "Update solution" << std::endl;
-      this->inputData_.updatePseudodata(pseudoObservations_[i], WeightsMatrix_[i]);
-      update_solution(i);
-
-      // STEP (3)
-      compute_mu(i);
-
-      // update J
-      past_J_values[i] = current_J_values[i];
-      current_J_values[i] = compute_J(i);
+        this->inputData_.setCurrentLambda(i, j); // set right lambda for the current iteration.
+        
+        /* useless output:  <14-10-20, Elia Cunial> */
+    /*    #ifdef R_VERSION_
+        Rprintf("Start FPIRLS for the lambda number %d \n", i+1);
+        #else
+        std::cout<<"Start FPIRLS for the lambda number "<<i+1<<std::endl;
+        #endif
+    */    
+        // start the iterative method for the lambda index i
+        n_iterations(i, j) = 0;
+        while(stopping_criterion(i, j)){ 
+        
+          // STEP (1)
           
-      n_iterations[i]++;
+          compute_G(i, j);
+          compute_Weights(i, j);
+          compute_pseudoObs(i, j);
 
-    } //end while
-    
-    /*
-    #ifdef R_VERSION_
-    Rprintf("\t n. iterations: %d\n \n", n_iterations[i]);
-    #else
-    std::cout<< "\t n. iterations: "<<n_iterations[i]<<"\n"<<std::endl;
-    #endif
-    */
-    _J_minima.push_back(current_J_values[i][0]+current_J_values[i][1]); // compute the minimum value of the J fuctional 
+          // STEP (2)
+          
+          this->inputData_.updatePseudodata(pseudoObservations_, WeightsMatrix_);
+          update_solution(i, j);
 
-    if(this->inputData_.getGCV_GAM()){ // compute GCV if it is required
-      compute_GCV(i);
-    }
+          // STEP (3)
+          compute_mu(i, j);
 
-  }// end for
+          // Variance Estimate
+          compute_variance_est(i, j);
 
-  // Variance Estimate
-  compute_variance_est();
+          // update J
+          past_J_values = current_J_values;
+          current_J_values = compute_J(i, j);
+              
+          n_iterations(i, j)++;
+
+        } //end while
+        
+        /*
+        #ifdef R_VERSION_
+        Rprintf("\t n. iterations: %d\n \n", n_iterations(i, j));
+        #else
+        std::cout<< "\t n. iterations: "<<n_iterations(i, j)<<"\n"<<std::endl;
+        #endif
+        _J_minima(i, j) = current_J_values[0]+current_J_values[1]; // compute the minimum value of the J fuctional 
+
+        */
+        if(this->inputData_.getGCV_GAM()){ // compute GCV if it is required
+          compute_GCV(i, j);
+        }
+
+      }// end for
+
+      }
+
+
 }
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::update_solution(UInt& lambda_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::update_solution(UInt& lambdaS_index, UInt& lambdaT_index){
   // performs step (2) of PIRLS. It requires pseudo data after step(1) and mimic regression skeleton behaviour
 
   // Here we have to solve a weighted regression problem. 
@@ -138,21 +144,21 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::update_solution(UI
   const SpMat& Psi = regression_.getPsi(); // get Psi matrix. It is used for the computation of fn_hat.
 
   // get the solutions from the regression object.
-  _solution(lambda_index,0) = regression_.getSolution()(0,0);
-  _dof(lambda_index,0) = regression_.getDOF()(0,0);
+  _solution(lambdaS_index, lambdaT_index) = regression_.getSolution()(0,0);
+  _dof(lambdaS_index, lambdaT_index) = regression_.getDOF()(0,0);
 
   if(inputData_.getCovariates().rows()>0){ 
-    _beta_hat(lambda_index,0) = regression_.getBeta()(0,0);
+    _beta_hat(lambdaS_index, lambdaT_index) = regression_.getBeta()(0,0);
   }
 
-  _fn_hat(lambda_index,0) = Psi *_solution(lambda_index,0).topRows(Psi.cols());
+  _fn_hat(lambdaS_index, lambdaT_index) = Psi *_solution(lambdaS_index,lambdaT_index).topRows(Psi.cols());
 
 
 }
 
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(UInt& lambda_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(UInt& lambdaS_index, UInt& lambdaT_index){
   // compute pseudodata observations
   
   VectorXr first_addendum; // G_ii( z_i - mu_i)
@@ -160,27 +166,27 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(
   
   VectorXr z = inputData_.getInitialObservations();
 
-  first_addendum.resize(mu_[lambda_index].size());
-  g_mu.resize(mu_[lambda_index].size());
+  first_addendum.resize(mu_.size());
+  g_mu.resize(mu_.size());
 
   //compute the vecotr first_addendum and g_mu
-  for(auto i=0; i < mu_[lambda_index].size(); i++){
-    g_mu(i) = link(mu_[lambda_index](i));
-    first_addendum(i) = G_[lambda_index](i)*(z(i)-mu_[lambda_index](i));
+  for(auto i=0; i < mu_.size(); i++){
+    g_mu(i) = link(mu_(i));
+    first_addendum(i) = G_(i)*(z(i)-mu_(i));
   }
 
-  pseudoObservations_[lambda_index] = first_addendum + g_mu;
+  pseudoObservations_ = first_addendum + g_mu;
 
 }
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(UInt& lambda_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(UInt& lambdaS_index, UInt& lambdaT_index){
   // compute the G matrix as G_ii = diag( g'(mu_i))
   
-  G_[lambda_index].resize(mu_[lambda_index].size());
+  G_.resize(mu_.size());
 
-  for(UInt i = 0; i<mu_[lambda_index].size(); i++){
-    G_[lambda_index](i) = link_deriv(mu_[lambda_index](i));
+  for(UInt i = 0; i<mu_.size(); i++){
+    G_(i) = link_deriv(mu_(i));
   }
 
 
@@ -188,14 +194,14 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(UInt& la
 
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_Weights(UInt& lambda_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_Weights(UInt& lambdaS_index, UInt& lambdaT_index){
   // computed W elementwise (it is a diagonal matrix)
 
-  WeightsMatrix_[lambda_index].resize( mu_[lambda_index].size());
+  WeightsMatrix_.resize( mu_.size());
 
   /* V(Y) = b''(theta) = 1/g'(mu) ==> W = 1/(g'(mu)^2*V(mu)) = 1/g'(mu):  <01-10-20, Elia Cunial> */
-  for(auto i=0; i < mu_[lambda_index].size(); i++){
-        WeightsMatrix_[lambda_index](i) = 1/G_[lambda_index](i);
+  for(auto i=0; i < mu_.size(); i++){
+        WeightsMatrix_(i) = 1/G_(i);
         
   }
 
@@ -203,36 +209,36 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_Weights(UI
 
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_mu(UInt& lambda_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_mu(UInt& lambdaS_index, UInt& lambdaT_index){
   //compute mu as mu_i = g-1( w_ii*beta + fn_hat)
 
-  VectorXr W_beta = VectorXr::Zero(mu_[lambda_index].size()); // initialize the vector w_ii*beta
+  VectorXr W_beta = VectorXr::Zero(mu_.size()); // initialize the vector w_ii*beta
 
   if(inputData_.getCovariates().rows()>0)
-    W_beta = inputData_.getCovariates()*_beta_hat(lambda_index,0);
+    W_beta = inputData_.getCovariates()*_beta_hat(lambdaS_index, lambdaT_index);
 
 
   
   for(UInt j=0; j < W_beta.size(); j++){
-    mu_[lambda_index](j) = inv_link(W_beta[j] + _fn_hat(lambda_index,0)(j));
+    mu_(j) = inv_link(W_beta[j] + _fn_hat(lambdaS_index,lambdaT_index)(j));
   }
 }
 
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-bool FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::stopping_criterion(UInt& lambda_index){
+bool FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::stopping_criterion(UInt& lambdaS_index, UInt& lambdaT_index){
   // return true if the f-PIRLS has to perform another iteration, false if it has to be stopped
   
   bool do_stop_by_iteration = false;  // Do I need to stop becouse n_it > n_max?
   bool do_stop_by_treshold = false; // Do I need to stop becouse |J(k) - J(k+1)| < treshold?
 
-  if(n_iterations[lambda_index] > inputData_.get_maxiter()){
+  if(n_iterations(lambdaS_index, lambdaT_index) > inputData_.get_maxiter()){
     do_stop_by_iteration = true;
-    std::cout << "Max iter ! " << std::endl;
+    std::cout << "Max iter for lambdas:  " << lambdaS_index << " " << lambdaT_index << std::endl;
   }
 
-  if(n_iterations[lambda_index] > 1){
-    if(abs(past_J_values[lambda_index][0]+past_J_values[lambda_index][1] - current_J_values[lambda_index][0] - current_J_values[lambda_index][1]) < inputData_.get_treshold()){
+  if(n_iterations(lambdaS_index, lambdaT_index) > 1){
+    if(abs(past_J_values[0]+past_J_values[1] - current_J_values[0] - current_J_values[1]) < inputData_.get_treshold()){
         do_stop_by_treshold = true;
    }
   }
@@ -241,7 +247,7 @@ bool FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::stopping_criterion
 }
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_J(UInt& lambda_index){
+std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_J(UInt& lambdaS_index, UInt& lambdaT_index){
   // compute the functional J: it is divided in parametric and non parametric part
   Real parametric_value = 0;
   Real non_parametric_value = 0;
@@ -253,22 +259,51 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
   const VectorXr z = inputData_.getInitialObservations();
 
   for(UInt i=0; i < mu_.size(); i++){
-    tmp = sqrt( var_function( mu_[lambda_index](i)) ) * (z(i) - mu_[lambda_index](i)) ;
+    tmp = sqrt( var_function( mu_(i)) ) * (z(i) - mu_(i)) ;
     parametric_value += tmp*tmp;
   }
 
-  Lf.resize(_solution(lambda_index,0).size()/2);
-  for(UInt i=0; i< Lf.size(); i++){
-    Lf(i) = _solution(lambda_index,0)(Lf.size() + i);
+  if(inputData_.getFlagParabolic() || not inputData_.isSpaceTime()){
+      Lf.resize(_solution(lambdaS_index,lambdaT_index).size()/2);
+      for(UInt i=0; i< Lf.size(); i++){
+        Lf(i) = _solution(lambdaS_index,lambdaT_index)(Lf.size() + i);
+      }
   }
+  else{
+      Lf = _solution(lambdaS_index, lambdaT_index);
+  }
+
 
   if(isSpaceVarying)
   {
       Lf = Lf - forcingTerm;
   }
 
-  non_parametric_value = Lf.transpose() * regression_.getR0() * Lf;
-  non_parametric_value = inputData_.getGlobalLambda()[lambda_index]*non_parametric_value;
+  SpMat Int;
+  std::array<Real, 2> lambdaST = inputData_.getGlobalLambda(lambdaS_index, lambdaT_index);
+  if(inputData_.isSpaceTime() && inputData_.getFlagParabolic()){
+        VectorXr intcoef(mesh_time_.size()-1);
+        intcoef.setConstant(mesh_time_[1]-mesh_time_[0]);
+        intcoef(0) *= 0.5;
+        SpMat IN(mesh_.num_nodes(), mesh_.num_nodes());
+        IN.setIdentity();
+        SpMat tmp = intcoef.asDiagonal().toDenseMatrix().sparseView();
+        tmp = kroneckerProduct(tmp, IN);
+        Int.resize(tmp.rows(), tmp.cols());
+        Int = lambdaST[0]*regression_.getR0()*tmp;
+  }
+  else if(inputData_.isSpaceTime()){
+      Int = regression_.getR1(); 
+      MatrixXr tmp = MatrixXr(regression_.getR0());
+      tmp = tmp.inverse();
+      Int = lambdaST[1]*regression_.getPtk() + lambdaST[0]*Int.transpose()*tmp*Int;
+
+  }
+  else{
+      Int.resize(mesh_.num_nodes(), mesh_.num_nodes());
+      Int = lambdaST[0]*regression_.getR0();
+  }
+  non_parametric_value = Lf.transpose() * Int * Lf;
 
   std::array<Real,2> returnObject{parametric_value, non_parametric_value};
 
@@ -277,52 +312,51 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
 
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_GCV(UInt& lambda_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_GCV(UInt& lambdaS_index, UInt&lambdaT_index){
 
   //GCV COMPUTATION
   if ( inputData_.computeDOF() ){ // is DOF_matrix to be computed?
-    regression_.computeDegreesOfFreedom(0, 0, this->inputData_.getGlobalLambda()[lambda_index], 0);
+    auto lambdas = this->inputData_.getGlobalLambda(lambdaS_index, lambdaT_index);
+    regression_.computeDegreesOfFreedom(0, 0, lambdas[0], lambdas[1]);
   }
-  _dof(lambda_index,0) = regression_.getDOF()(0,0);
+  _dof(lambdaS_index,lambdaT_index) = regression_.getDOF()(0,0);
 
   VectorXr y = inputData_.getInitialObservations();
   Real GCV_value = 0;
 
   for(UInt j=0; j < y.size();j++)
-    GCV_value += dev_function(mu_[lambda_index][j], y[j]); //norm computation
+    GCV_value += dev_function(mu_[j], y[j]); //norm computation
 
   GCV_value *= y.size();
 
-  GCV_value /= (y.size()-inputData_.getTuneParam()*_dof(lambda_index,0))*(y.size()-inputData_.getTuneParam()*_dof(lambda_index,0));
+  GCV_value /= (y.size()-inputData_.getTuneParam()*_dof(lambdaS_index,lambdaT_index))*(y.size()-inputData_.getTuneParam()*_dof(lambdaS_index,lambdaT_index));
 
-  _GCV[lambda_index] = GCV_value;
+  _GCV( lambdaS_index, lambdaT_index ) = GCV_value;
 
   //best lambda
   if ( GCV_value < _bestGCV)
   {
-    bestLambdaS_ = lambda_index;
+    bestLambdaS_ = lambdaS_index;
+    bestLambdaT_ = lambdaT_index;
     _bestGCV = GCV_value;
   }
 
 }
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_variance_est(){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_variance_est(UInt & lambdaS_index, UInt & lambdaT_index){
   Real phi; 
-  if(this->scale_parameter_flag_ && !this->inputData_.getGCV_GAM() ){// if scale param should be 
-    _variance_estimates.resize(this->mu_.size(),0);
+  if(this->scale_parameter_flag_ ){// if scale param should be 
     const UInt n_obs = this->inputData_.getObservations().size();
 
     //scale parameter computed as: mean((var.link(mu)*phi)/mu), and phi is computed as in Wood IGAM
-    for(UInt i=0; i < this->mu_.size();i++){
-      phi = (this->scale_parameter_flag_ )? this->current_J_values[i][0]/(n_obs - this->_dof(i,0) ) : _scale_param;
-      for(UInt j=0; j < this->mu_[i].size(); j++){
-        _variance_estimates[i] += phi* this->var_function(this->mu_[i][j])/this->mu_[i][j];
+      phi = (this->scale_parameter_flag_ )? this->current_J_values[0]/(n_obs - this->_dof(lambdaS_index,lambdaT_index) ) : _scale_param;
+      for(UInt j=0; j < this->mu_.size(); j++){
+        _variance_estimates( lambdaS_index, lambdaT_index ) += phi* this->var_function(this->mu_[j])/this->mu_[j];
       }
-      _variance_estimates[i] /= this->mu_[i].size();
-    }
+      _variance_estimates( lambdaS_index, lambdaT_index ) /= this->mu_.size();
   }else{
-    _variance_estimates.push_back(-1);
+    _variance_estimates(lambdaS_index, lambdaT_index) = -1;
   }
 }
 

@@ -102,7 +102,7 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& loca
 									std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, bool DOF, bool GCV, UInt search, 
 									UInt max_num_iterations, Real threshold, Real tune, bool arealDataAvg):
 		 RegressionData(locations, observations, order, lambdaS, covariates, incidenceMatrix, bc_indices, bc_values, DOF, false, search, tune, arealDataAvg), 
-		 				max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambda_(lambdaS), GCV_GAM_(GCV)
+		 				max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambdaS_(lambdaS), GCV_GAM_(GCV)
 {;}
 
 // PDE
@@ -114,7 +114,7 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& loca
 												std::vector<Real>& bc_values, bool DOF, bool GCV, UInt search, 
 												UInt max_num_iterations, Real threshold, Real tune, bool arealDataAvg):
 		 RegressionDataElliptic(locations, observations, order, lambdaS, K, beta, c, covariates, incidenceMatrix, bc_indices, bc_values, DOF, false, search, tune, arealDataAvg),
-		 									max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambda_(lambdaS), GCV_GAM_(GCV)
+		 									max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambdaS_(lambdaS), GCV_GAM_(GCV)
 {;}
 
 // PDE SpaceVarying
@@ -128,7 +128,7 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& loca
 									std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, bool DOF, bool GCV, UInt search, 
 									UInt max_num_iterations, Real threshold, Real tune, bool arealDataAvg):
 		 RegressionDataEllipticSpaceVarying(locations, observations, order, lambdaS, K, beta, c, u, covariates, incidenceMatrix, bc_indices, bc_values, DOF, false, search, tune, arealDataAvg),
-		 									max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambda_(lambdaS), GCV_GAM_(GCV)
+		 									max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambdaS_(lambdaS), GCV_GAM_(GCV)
 {;}
 
 template<typename RegressionHandler>
@@ -138,7 +138,7 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& loca
                                     Real tune, bool arealDataAvg, UInt max_num_iterations, Real threshold, MatrixXi & incidenceMatrixTime):
 		 RegressionData(locations, time_locations, observations, order, lambdaS, lambdaT, covariates, incidenceMatrix, bc_indices, bc_values, ic, flag_mass, flag_parabolic, DOF,
                         GCV, search, tune, arealDataAvg, incidenceMatrixTime),
-         max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambda_(lambdaS), GCV_GAM_(GCV)
+         max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambdaS_(lambdaS), GCV_GAM_(GCV)
 
 {;}
 
@@ -301,7 +301,8 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP Rb
 	threshold_ =  REAL(Rthreshold)[0];
 
     initialObservations_ = this->observations_;
-    global_lambda_ = this->lambdaS_;
+    global_lambdaS_ = this->lambdaS_;
+    global_lambdaT_ = std::vector<Real>(1);
     GCV_GAM_ = this->GCV_; 
     this->GCV_ = false;
 }
@@ -319,7 +320,8 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP Rb
 	threshold_ =  REAL(Rthreshold)[0];
 
     initialObservations_ = this->observations_;
-    global_lambda_ = this->lambdaS_;
+    global_lambdaS_ = this->lambdaS_;
+    global_lambdaT_ = std::vector<Real>(1, 0);
     GCV_GAM_ = this->GCV_; 
     this->GCV_ = false;
 }
@@ -337,7 +339,8 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP Rb
 	max_num_iterations_ = INTEGER(Rmax_num_iteration)[0];
 	threshold_ =  REAL(Rthreshold)[0];
     initialObservations_ = this->observations_;
-    global_lambda_ = this->lambdaS_;
+    global_lambdaS_ = this->lambdaS_;
+    global_lambdaT_ = std::vector<Real>(1, 0);
     GCV_GAM_ = this->GCV_; 
     this->GCV_ = false;
 }
@@ -355,7 +358,8 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP Rb
 	max_num_iterations_ = INTEGER(Rmax_num_iteration)[0];
 	threshold_ =  REAL(Rthreshold)[0];
     initialObservations_ = this->observations_;
-    global_lambda_ = this->lambdaS_;
+    global_lambdaS_ = this->lambdaS_;
+    global_lambdaT_ = this->lambdaT_;
     GCV_GAM_ = this->GCV_; 
     this->GCV_ = false;
 }
