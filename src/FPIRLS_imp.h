@@ -91,9 +91,9 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
         
           // STEP (1)
           
-          compute_G(i, j);
-          compute_Weights(i, j);
-          compute_pseudoObs(i, j);
+          compute_G();
+          compute_Weights();
+          compute_pseudoObs();
 
           // STEP (2)
           
@@ -158,7 +158,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::update_solution(UI
 
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(UInt& lambdaS_index, UInt& lambdaT_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(){
   // compute pseudodata observations
   
   VectorXr first_addendum; // G_ii( z_i - mu_i)
@@ -180,7 +180,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(
 }
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(UInt& lambdaS_index, UInt& lambdaT_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(){
   // compute the G matrix as G_ii = diag( g'(mu_i))
   
   G_.resize(mu_.size());
@@ -194,7 +194,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_G(UInt& la
 
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
-void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_Weights(UInt& lambdaS_index, UInt& lambdaT_index){
+void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_Weights(){
   // computed W elementwise (it is a diagonal matrix)
 
   WeightsMatrix_.resize( mu_.size());

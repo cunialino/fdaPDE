@@ -58,11 +58,11 @@ class FPIRLS_Base {
    MatrixXr _variance_estimates; //!< Stores the variance estimates for each lambda.
 
    //! A method that computes the pseudodata. It perform step (1) of f-PIRLS.
-   void compute_pseudoObs(UInt& lambdaS_index, UInt& lambdaT_index);
+   void compute_pseudoObs();
    //! A method that assembles G matrix.
-   void compute_G(UInt& lambda_index, UInt& lambdaT_index);
+   void compute_G();
    //! A method that assembles the weights matrix ( a diagonal matrix, hence it is stored as vector).
-   void compute_Weights(UInt& lambda_index, UInt& lambdaT_index);
+   void compute_Weights();
    //! A method that updates the solution. It perform step (2) of F-PIRLS.
    void update_solution(UInt& lambda_index, UInt& lambdaT_index);
    //! A method that updates mu vector. It perform step (3) of F-PIRLS.
