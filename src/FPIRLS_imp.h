@@ -41,7 +41,6 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
   //Initialize the containers size, as LambdaS_len
   const UInt LambdaS_len = inputData_.getLambdaS().size();
   const UInt LambdaT_len = inputData_.getLambdaT().size();
-  std::cerr << LambdaT_len << std::endl;
   
   // initialize the algorithm variables
   /*
