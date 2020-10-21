@@ -325,10 +325,10 @@ smooth.FEM.time<-function(locations = NULL, time_locations=NULL, observations, F
   else
     beta = NULL
 
-  if(all(is.na(bigsol[[13]])))
+  if(all(is.na(bigsol[[ICindx]])))
     ICestimated = NULL
   else
-    ICestimated = list(IC.FEM=bigsol[[13]],bestlambdaindex=bigsol[[14]],bestlambda=bigsol[[15]],beta=bigsol[[16]])
+    ICestimated = list(IC.FEM=bigsol[[ICindx]],bestlambdaindex=bigsol[[ICindx+1]],bestlambda=bigsol[[ICindx]],beta=bigsol[[ICindx]])
 
     # Save information of Tree Mesh
      tree_mesh = list(

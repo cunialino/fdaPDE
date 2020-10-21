@@ -375,7 +375,6 @@ void FPIRLS<GAMDataEllipticSpaceVarying,Integrator,ORDER, mydim, ndim>::apply(){
 
   this->isSpaceVarying = true;
   FPIRLS_Base<GAMDataEllipticSpaceVarying,Integrator,ORDER, mydim, ndim>::apply(this->inputData_.getU());
-
 }
 
 
