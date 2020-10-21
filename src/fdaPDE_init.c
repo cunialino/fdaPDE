@@ -8,8 +8,6 @@
 */
 
 /* .Call calls */
-extern SEXP Density_Estimation(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP Density_Initialization(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP eval_FEM_fd(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP eval_FEM_time(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP eval_FEM_time_nodes(SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -26,7 +24,6 @@ extern SEXP regression_PDE( SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP
 extern SEXP regression_PDE_space_varying( SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP regression_PDE_space_varying_time( SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP regression_PDE_time( SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP Smooth_FPCA(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP tree_mesh_construction(SEXP, SEXP, SEXP, SEXP);
 extern SEXP gam_Laplace( SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP gam_PDE( SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -35,8 +32,6 @@ extern SEXP gam_Laplace_time( SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEX
 
 
 static const R_CallMethodDef CallEntries[] = {
-    {"Density_Estimation",                (DL_FUNC) &Density_Estimation,                19},
-    {"Density_Initialization",            (DL_FUNC) &Density_Initialization,            18},
     {"eval_FEM_fd",                       (DL_FUNC) &eval_FEM_fd,                       10},
     {"eval_FEM_time",                     (DL_FUNC) &eval_FEM_time,                     13},
     {"eval_FEM_time_nodes",               (DL_FUNC) &eval_FEM_time_nodes,                5},
@@ -53,7 +48,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"regression_PDE_space_varying",      (DL_FUNC) &regression_PDE_space_varying,      24},
     {"regression_PDE_space_varying_time", (DL_FUNC) &regression_PDE_space_varying_time, 30},
     {"regression_PDE_time",               (DL_FUNC) &regression_PDE_time,               29},
-    {"Smooth_FPCA",                       (DL_FUNC) &Smooth_FPCA,                       15},
     {"tree_mesh_construction",            (DL_FUNC) &tree_mesh_construction,             4},
     {"gam_Laplace",                       (DL_FUNC) &gam_Laplace,                       25},
     {"gam_PDE",                           (DL_FUNC) &gam_PDE,                           28},
