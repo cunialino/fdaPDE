@@ -1,6 +1,7 @@
 #ifndef __MIXEDFEREGRESSION_HPP__
 #define __MIXEDFEREGRESSION_HPP__
 
+#include "Eigen/src/Core/util/Constants.h"
 #include "fdaPDE.h"
 #include "finite_element.h"
 #include "matrix_assembler.h"
@@ -163,7 +164,11 @@ class MixedFERegressionBase
 	inline SpMat const getR0()const{return R0_;}
 	//! A method returning the R1 matrix
 	inline SpMat const getR1()const{return R1_;}
+
     inline SpMat const getPtk()const{return Ptk_;}
+
+    inline Eigen::ComputationInfo const getDecInfo() const { return matrixNoCovdec_.info(); }
+
 	
 
 

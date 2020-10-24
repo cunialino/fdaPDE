@@ -7,6 +7,7 @@
 #include <fstream>
 #include <unsupported/Eigen/KroneckerProduct>
 #include <fstream>
+#include <exception>
 
 #include "R_ext/Print.h"
 
@@ -279,7 +280,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	// First phase: Factorization of matrixNoCov
 	matrixNoCovdec_.compute(matrixNoCov_);
 
-
 	if (regressionData_.getCovariates().rows() != 0) {
 		// Second phase: factorization of matrix  G =  C + [V * matrixNoCov^-1 * U]= C + D
 
@@ -328,14 +328,19 @@ MatrixXr MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTim
 
 	// Resolution of the system matrixNoCov * x1 = b
     //std::cerr << "Determinant: " << matrixNoCovdec_.determinant() << std::endl;
-	MatrixXr x1 = matrixNoCovdec_.solve(b);
-	if (regressionData_.getCovariates().rows() != 0) {
-		// Resolution of G * x2 = V * x1
-		MatrixXr x2 = Gdec_.solve(V_*x1);
-		// Resolution of the system matrixNoCov * x3 = U * x2
-		x1 -= matrixNoCovdec_.solve(U_*x2);
-	}
-	return x1;
+    if(matrixNoCovdec_.info() == 0){
+        MatrixXr x1 = matrixNoCovdec_.solve(b);
+        if (regressionData_.getCovariates().rows() != 0) {
+            // Resolution of G * x2 = V * x1
+            MatrixXr x2 = Gdec_.solve(V_*x1);
+            // Resolution of the system matrixNoCov * x3 = U * x2
+            x1 -= matrixNoCovdec_.solve(U_*x2);
+        }
+        return x1;
+    }
+    else{
+        return MatrixXr(b.rows(), b.cols());
+    }
 }
 
 

@@ -108,11 +108,9 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
           // update J
           past_J_values = current_J_values;
           current_J_values = compute_J(i, j);
-              
           n_iterations(i, j)++;
 
         } //end while
-        
         /*
         #ifdef R_VERSION_
         Rprintf("\t n. iterations: %d\n \n", n_iterations(i, j));
@@ -230,10 +228,16 @@ bool FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::stopping_criterion
   
   bool do_stop_by_iteration = false;  // Do I need to stop becouse n_it > n_max?
   bool do_stop_by_treshold = false; // Do I need to stop becouse |J(k) - J(k+1)| < treshold?
+  bool do_stop_by_exception = false;
+
+  if(n_iterations(lambdaS_index, lambdaT_index) > 0 && regression_.getDecInfo() != 0){
+      do_stop_by_exception = true;
+      std::cout << "For lambda_index=( " << lambdaS_index << ", " << lambdaT_index << ") eigen decomposition error: " << regression_.getDecInfo() << std::endl;
+  }
 
   if(n_iterations(lambdaS_index, lambdaT_index) > inputData_.get_maxiter()){
     do_stop_by_iteration = true;
-    std::cout << "Max iter for lambdas:  " << lambdaS_index << " " << lambdaT_index << std::endl;
+    std::cout << "For lambda_index=( " << lambdaS_index << ", " << lambdaT_index << ") max iterations reached " << std::endl;
   }
 
   if(n_iterations(lambdaS_index, lambdaT_index) > 1){
@@ -242,7 +246,7 @@ bool FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::stopping_criterion
    }
   }
 
-  return !(do_stop_by_iteration || do_stop_by_treshold );
+  return !(do_stop_by_iteration || do_stop_by_treshold || do_stop_by_exception);
 }
 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>

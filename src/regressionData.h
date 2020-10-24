@@ -71,7 +71,7 @@ class  RegressionData{
 
 		VectorXr ic_; //initial conditions
 		bool flag_mass_;	//mass penalization, only for separable version (flag_parabolic_==FALSE)
-		bool flag_parabolic_;
+		bool flag_parabolic_ = false;
 
 		//bool inputType;
 		MatrixXr dof_matrix_;
