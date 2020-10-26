@@ -377,8 +377,9 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	UInt nlocations = regressionData_.getNumberofObservations();
 	rightHandData = VectorXr::Zero(nnodes);
     VectorXr obs = regressionData_.getObservations();
-    if(regressionData_.getNumberOfIntervals() != 0)
+    if(regressionData_.getNumberOfIntervals() != 0){
         obs = obs - obs_ic_correction_;
+    }
 
 	if (regressionData_.getCovariates().rows() == 0) //no covariate
 	{
