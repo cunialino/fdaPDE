@@ -290,7 +290,7 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations=NUL
   {
     if (!is.null(time_mesh))
     {
-      if(ncol(observations)!=nrow(time_mesh))
+      if(time_locations[1] != time_mesh[1])
         stop("IC is required for parabolic smoothing")
       else
         message("IC is required for parabolic smoothing, will be estimated from the first column of 'observations'")

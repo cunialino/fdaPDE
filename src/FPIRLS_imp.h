@@ -256,6 +256,7 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
   Real non_parametric_value = 0;
   Real tmp;
 
+  std::cerr << _solution(lambdaS_index, lambdaT_index).size() << std::endl;
 
   VectorXr Lf;
 
@@ -266,15 +267,10 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
     parametric_value += tmp*tmp;
   }
 
-  if(inputData_.getFlagParabolic() || not inputData_.isSpaceTime()){
       Lf.resize(_solution(lambdaS_index,lambdaT_index).size()/2);
       for(UInt i=0; i< Lf.size(); i++){
         Lf(i) = _solution(lambdaS_index,lambdaT_index)(Lf.size() + i);
       }
-  }
-  else{
-      Lf = _solution(lambdaS_index, lambdaT_index);
-  }
 
 
   if(isSpaceVarying)
@@ -300,12 +296,12 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
       MatrixXr tmp = MatrixXr(regression_.getR0());
       tmp = tmp.inverse();
       Int = lambdaST[1]*regression_.getPtk() + lambdaST[0]*Int.transpose()*tmp*Int;
-
   }
   else{
       Int.resize(mesh_.num_nodes(), mesh_.num_nodes());
       Int = lambdaST[0]*regression_.getR0();
   }
+  std::cerr << Int.rows() << " " << Int.cols() << " | " << Lf.size() << std::endl;
   non_parametric_value = Lf.transpose() * Int * Lf;
 
   std::array<Real,2> returnObject{parametric_value, non_parametric_value};

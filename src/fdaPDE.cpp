@@ -1313,7 +1313,11 @@ SEXP get_FEM_PDE_space_varying_matrix(SEXP Rlocations, SEXP RbaryLocations, SEXP
       UInt ndim=INTEGER(Rndim)[0];
       std::string family = CHAR(STRING_ELT(Rfamily,0));
 
-      return(GAM_skeleton_time<GAMDataLaplace, IntegratorTriangleP2, 1, 2, 2>(regressionData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
+    if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
+    	return(GAM_skeleton_time<GAMDataLaplace,IntegratorTriangleP2, 1, 2, 2>(regressionData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
+    else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
+		return(GAM_skeleton_time<GAMDataLaplace,IntegratorTriangleP4, 2, 2, 2>(regressionData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
+    return(R_NilValue);
   }
 
 

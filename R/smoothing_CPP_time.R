@@ -803,26 +803,10 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
                  mydim, ndim, lambdaSIC, covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
                  T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
 
-    if(nrow(covariates)!=0)
-    {
-      betaIC = ICsol[[5]]
-      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]][1]+1]# best IC estimation
-      covariates=covariates[(NobsIC+1):nrow(covariates),]
-      covariates <- as.matrix(covariates)
-    }
-    else
-    {
-      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]][1]+1] ## best IC estimation
-      betaIC = NULL
-    }
-    ## return a FEM object containing IC estimates with best lambda and best lambda index
-    ICsol = list(IC.FEM=FEM(ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),],FEMbasis),bestlambdaindex=ICsol[[4]][1]+1,bestlambda=lambdaSIC[ICsol[[4]][1]+1],beta=betaIC)
-    time_locations=time_locations[2:nrow(time_locations)]
-    observations = observations[(NobsIC+1):length(observations)]
-    print("done")
     ## shifting the lambdas interval if the best lambda is the smaller one and retry smoothing
-    if((ICsol[[3]][1]+1)==1)
+    if((ICsol[[4]]+1)==1)
     {
+      print("Shifting lambda (left) for IC estimation")
       lambdaSIC <- 10^seq(-9,-7,0.1)
       lambdaSIC <- as.matrix(lambdaSIC)
       storage.mode(lambdaSIC) <- "double"
@@ -834,8 +818,9 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     else
     {
       ## shifting the lambdas interval if the best lambda is the higher one and retry smoothing
-      if((ICsol[[3]][1]+1)==length(lambdaSIC))
+      if((ICsol[[4]]+1)==length(lambdaSIC))
       {
+      print("Shifting lambda (right) for IC estimation")
         lambdaSIC <- 10^seq(3,5,0.1)
         lambdaSIC <- as.matrix(lambdaSIC)
         storage.mode(lambdaSIC) <- "double"
@@ -845,8 +830,25 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
 
       }
     }
+    if(nrow(covariates)!=0)
+    {
+      betaIC = ICsol[[5]]
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]]+1]# best IC estimation
+      covariates=covariates[(NobsIC+1):nrow(covariates),]
+      covariates <- as.matrix(covariates)
+    }
+    else
+    {
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]]+1] ## best IC estimation
+      betaIC = NULL
+    }
+    ## return a FEM object containing IC estimates with best lambda and best lambda index
+    ICsol = list(IC.FEM=FEM(ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),],FEMbasis),bestlambdaindex=ICsol[[4]]+1,bestlambda=lambdaSIC[ICsol[[4]]+1],beta=betaIC)
+    time_locations=time_locations[2:nrow(time_locations)]
+    observations = observations[(NobsIC+1):length(observations)]
     
   }
+  print("IC estimation done")
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
 

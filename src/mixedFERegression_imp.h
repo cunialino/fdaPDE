@@ -11,6 +11,27 @@
 
 #include "R_ext/Print.h"
 
+Real deltaapprox(Real t, Real t0, Real dt, Real m){
+    Real eps = m*dt; 
+    Real csi = std::abs(t-t0)/eps;
+    if(csi <= eps)
+        return (1-csi);
+    else
+        return 0;
+}
+/*
+Real deltaapprox(Real t, Real t0, Real dt, Real m){
+    Real eps = m*dt; 
+    Real csi = std::abs(t-t0)/eps;
+    if(csi <= 0.5*eps)
+        return (2 - 2*csi - 8*std::pow(csi, 2) + 8*std::pow(csi, 3))/eps;
+    else if(csi <= 1*eps)
+        return std::abs( 2 - 22/3.*csi + 8*std::pow(csi, 2) - 8/3.*std::pow(csi, 3) )/eps;
+    else 
+        return 0;
+}
+*/
+
 template<typename InputHandler, typename IntegratorSpace, UInt ORDER, typename IntegratorTime, UInt SPLINE_DEGREE, UInt ORDER_DERIVATIVE, UInt mydim, UInt ndim>
 void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim>::addDirichletBC()
 {
@@ -21,16 +42,6 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	const std::vector<UInt>& bc_indices = regressionData_.getDirichletIndices();
 	const std::vector<Real>& bc_values = regressionData_.getDirichletValues();
 	UInt nbc_indices = bc_indices.size();
-    /*
-    SpMat tmp;
-    for(int i = 0; i < matrixNoCov_.rows(); i++){
-        auto it = std::find(bc_indices.begin(), bc_indices.end(), i);
-        if(it != bc_indices.end()){
-            tmp.conservativeResize(tmp.rows()+1, matrixNoCov_.cols());
-            tmp.row(tmp.rows()-1) = matrixNoCov_.row(i)
-        }
-
-    }*/
 
 	Real pen=10e20;
 
@@ -131,7 +142,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 		Eigen::Matrix<Real,Nodes,1> coefficients;
 
 		Real evaluator;
-		this->barycenters_.resize(nlocations, Nodes);
+		this->barycenters_.resize(nlocations, 3);
 		this->element_ids_.resize(nlocations);
 		for(UInt i=0; i<nlocations;i++)
 		{
@@ -156,9 +167,10 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 					coefficients = Eigen::Matrix<Real,Nodes,1>::Zero();
 					coefficients(node) = 1; //Activates only current base
 					evaluator = evaluate_point<Nodes,mydim,ndim>(tri_activated, regressionData_.getLocations()[i], coefficients);
-					barycenters_(i,node)=tri_activated.getBaryCoordinates(regressionData_.getLocations()[i])[node];
 					psi_.insert(i, tri_activated[node].getId()) = evaluator;
 				}
+                for(UInt baryids = 0; baryids < 3; baryids ++)
+					barycenters_(i,baryids)=tri_activated.getBaryCoordinates(regressionData_.getLocations()[i])[baryids];
 			}
 		} //end of for loop
 		psi_.makeCompressed();
@@ -377,8 +389,9 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	UInt nlocations = regressionData_.getNumberofObservations();
 	rightHandData = VectorXr::Zero(nnodes);
     VectorXr obs = regressionData_.getObservations();
-    if(regressionData_.getNumberOfIntervals() != 0){
-        obs = obs - obs_ic_correction_;
+    if(regressionData_.isSpaceTime() && (regressionData_.getNumberOfIntervals() != 0 || regressionData_.getTimeLocations().size() != M_)){
+        std::cout << "corr" << std::endl;
+        //obs = obs/(mesh_time_[1] - mesh_time_[0]);
     }
 
 	if (regressionData_.getCovariates().rows() == 0) //no covariate
@@ -636,8 +649,23 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
 		SpMat L = FiniteDifference.getDerOpL(); // Matrix of finite differences
 		IM.setIdentity();
 		LR0k_ = kroneckerProduct(L,R0_);
+        Real delta= (mesh_time_[1]-mesh_time_[0]);
         if(m == 0)
-    		phi = IM;
+            if(regressionData_.getTimeLocations().size() == M_){
+                phi = IM;
+            }
+            else{
+                Real ntl = regressionData_.getTimeLocations().size();
+                phi.resize(ntl, M_+1);
+                /* this choice of epsilon in the approximation guarantees a full row rank matrix (suff condition for invertibility):  <28-10-20, Elia Cunial> */
+                for(int i = 0; i < ntl; i++){
+                    for(int j = 0; j < M_+1; j++){
+                        Real coeff =deltaapprox(mesh_time_[j], regressionData_.getTimeLocations()[i], delta, 1);
+                        if(coeff != 0)
+                            phi.coeffRef(i, j) = coeff ;
+                    }
+                }
+            }
         else {
             MatrixXi beta = regressionData_.getIncidenceMatrixTime();
             phi = beta.cast<double>().sparseView();
@@ -645,8 +673,8 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
         }
 		//! right hand side correction for the initial condition:
 		rhs_ic_correction_ = (1/(mesh_time_[1]-mesh_time_[0]))*(R0_*regressionData_.getInitialValues());
-        if(m != 0){
-            obs_ic_correction_ = 0.5*kroneckerProduct(phi.leftCols(1), psi_)*regressionData_.getInitialValues();
+        if(m != 0 || M_ != regressionData_.getTimeLocations().size()){
+
             phi = phi.rightCols(M_);
         }
 	}
@@ -676,10 +704,10 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
 	SpMat R1_temp = R1_;
 	SpMat R0_temp = R0_;
     if(m == 0)
-        psi_.resize(N_*M_,N_*M_);
+        psi_.resize(n*regressionData_.getTimeLocations().size(), N_*M_);
     else
         psi_.resize(m*n, N_*M_);
-	psi_ = kroneckerProduct(phi,psi_temp);
+	psi_ = Eigen::kroneckerProduct(phi,psi_temp);
 	addNA();
 	R1_.resize(N_*M_,N_*M_);
 	R1_ = kroneckerProduct(IM,R1_temp);
@@ -787,21 +815,9 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 			if(regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic())
 				NWblock+=lambdaT*Ptk_;
-            if(regressionData_.getNumberOfIntervals() != 0){
-                SpMat Gammas(M_, M_);
-                for(int i = 0; i < Gammas.rows()-1; i++)
-                    Gammas.insert(i, i) = 1;
-                Gammas.insert(Gammas.rows()-1, Gammas.rows()-1) = 0.5;
-                SpMat IN(N_, N_);
-                IN.setIdentity();
-                SpMat GammaT(N_*M_, N_*M_);
-                /* kroneckerProduct non funziona, da il seguente errore:
-                 * free(): invalid next size (normal):  <23-09-20, Elia Cunial> */
-                //GammaT = kroneckerProduct(Gammas, IN);
-                GammaT = Eigen::kroneckerProduct(Gammas, IN);
-                NWblock = NWblock*GammaT;
-            }
-
+            //else if(regressionData_.isSpaceTime() && (regressionData_.getNumberOfIntervals() != 0 || M_ != regressionData_.getTimeLocations().size()))
+            //    NWblock = NWblock/(mesh_time_[1]-mesh_time_[0]);
+            /* Qui penso che alla fine vista la natura del problema l'integrale del sampling operator vada discretizzato con la regola del punto destro:  <27-10-20, Elia Cunial> */
 			this->buildMatrixNoCov(NWblock, R1_lambda, R0_lambda);
 
 			//! right-hand side correction for space varying PDEs

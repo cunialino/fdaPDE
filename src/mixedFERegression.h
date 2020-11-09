@@ -70,7 +70,8 @@ class MixedFERegressionBase
 
 	VectorXr rhs_ft_correction_;	//!< right hand side correction for the forcing term:
 	VectorXr rhs_ic_correction_;	//!< Initial condition correction (parabolic case)
-    VectorXr obs_ic_correction_;    //!< observation correction for interval data
+    MatrixXr obs_ic_correction_mat_;    //!< observation correction for interval data
+    SpMat GammaT;
 	VectorXr _rightHandSide;      //!< A Eigen::VectorXr: Stores the system right hand side.
 	MatrixXv _solution; 		//!< A Eigen::MatrixXv: Stores the system solution.
 	MatrixXr _dof;       //!< A Eigen::MatrixXr storing the computed dofs
