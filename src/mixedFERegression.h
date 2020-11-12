@@ -67,6 +67,7 @@ class MixedFERegressionBase
 	bool isRcomputed_ = false;
 	Eigen::SparseLU<SpMat> R0dec_; //!< Stores the factorization of R0_
 
+    SpMat psi2;
 
 	VectorXr rhs_ft_correction_;	//!< right hand side correction for the forcing term:
 	VectorXr rhs_ic_correction_;	//!< Initial condition correction (parabolic case)
@@ -158,7 +159,7 @@ class MixedFERegressionBase
 	//! A method returning the index of the best lambdaT according to GCV
 	inline UInt getBestLambdaT(){return bestLambdaT_;}
 	//! A method returning the psi matrix
-	inline SpMat const getPsi()const{return psi_;}
+	inline SpMat const getPsi()const{if(regressionData_.isSpaceTime() && regressionData_.getFlagParabolic() && M_!=regressionData_.getTimeLocations().size() )return psi2; else return psi_;}
 	//! A method returning the R0 matrix
 	inline SpMat const getR0()const{return R0_;}
 	//! A method returning the R1 matrix

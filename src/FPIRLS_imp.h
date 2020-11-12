@@ -256,8 +256,6 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
   Real non_parametric_value = 0;
   Real tmp;
 
-  std::cerr << _solution(lambdaS_index, lambdaT_index).size() << std::endl;
-
   VectorXr Lf;
 
   const VectorXr z = inputData_.getInitialObservations();
@@ -280,8 +278,10 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
 
   SpMat Int;
   std::array<Real, 2> lambdaST = inputData_.getGlobalLambda(lambdaS_index, lambdaT_index);
-  if(inputData_.isSpaceTime() && inputData_.getFlagParabolic()){
-        VectorXr intcoef(mesh_time_.size()-1);
+  if(inputData_.isSpaceTime()) { // && inputData_.getFlagParabolic()){
+
+        UInt correction_size = inputData_.getFlagParabolic() ? - 1 : + 2;
+        VectorXr intcoef(mesh_time_.size() + correction_size);
         intcoef.setConstant(mesh_time_[1]-mesh_time_[0]);
         intcoef(0) *= 0.5;
         SpMat IN(mesh_.num_nodes(), mesh_.num_nodes());
@@ -291,17 +291,10 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
         Int.resize(tmp.rows(), tmp.cols());
         Int = lambdaST[0]*regression_.getR0()*tmp;
   }
-  else if(inputData_.isSpaceTime()){
-      Int = regression_.getR1(); 
-      MatrixXr tmp = MatrixXr(regression_.getR0());
-      tmp = tmp.inverse();
-      Int = lambdaST[1]*regression_.getPtk() + lambdaST[0]*Int.transpose()*tmp*Int;
-  }
   else{
       Int.resize(mesh_.num_nodes(), mesh_.num_nodes());
       Int = lambdaST[0]*regression_.getR0();
   }
-  std::cerr << Int.rows() << " " << Int.cols() << " | " << Lf.size() << std::endl;
   non_parametric_value = Lf.transpose() * Int * Lf;
 
   std::array<Real,2> returnObject{parametric_value, non_parametric_value};

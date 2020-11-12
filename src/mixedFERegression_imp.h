@@ -5,33 +5,31 @@
 #include <chrono>
 #include <random>
 #include <fstream>
-#include <unsupported/Eigen/KroneckerProduct>
 #include <fstream>
 #include <exception>
 
 #include "R_ext/Print.h"
-#include "unsupported/Eigen/src/KroneckerProduct/KroneckerTensorProduct.h"
 
-Real deltaapprox(Real t, Real t0, Real dt, Real m){
-    Real eps = m*dt; 
-    Real csi = std::abs(t-t0)/eps;
-    if(csi <= eps)
-        return (1-csi);
-    else
-        return 0;
-}
 /*
 Real deltaapprox(Real t, Real t0, Real dt, Real m){
     Real eps = m*dt; 
     Real csi = std::abs(t-t0)/eps;
-    if(csi <= 0.5*eps)
-        return (2 - 2*csi - 8*std::pow(csi, 2) + 8*std::pow(csi, 3));
-    else if(csi <= 1*eps)
-        return std::abs( 2 - 22/3.*csi + 8*std::pow(csi, 2) - 8/3.*std::pow(csi, 3) );
-    else 
+    if(csi <= eps)
+        return (1-csi)/eps;
+    else
         return 0;
 }
 */
+Real deltaapprox(Real t, Real t0, Real dt, Real m){
+    Real eps = m*dt; 
+    Real csi = std::abs(t-t0)/eps;
+    if(csi <= 0.5*eps)
+        return (2 - 2*csi - 8*std::pow(csi, 2) + 8*std::pow(csi, 3))/eps;
+    else if(csi <= 1*eps)
+        return std::abs( 2 - 22/3.*csi + 8*std::pow(csi, 2) - 8/3.*std::pow(csi, 3) )/eps;
+    else 
+        return 0;
+}
 
 template<typename InputHandler, typename IntegratorSpace, UInt ORDER, typename IntegratorTime, UInt SPLINE_DEGREE, UInt ORDER_DERIVATIVE, UInt mydim, UInt ndim>
 void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim>::addDirichletBC()
@@ -646,9 +644,7 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
 		SpMat L = FiniteDifference.getDerOpL(); // Matrix of finite differences
 		IM.setIdentity();
 		LR0k_ = kroneckerProduct(L,R0_);
-        Real delta= (mesh_time_[1]-mesh_time_[0]);
         if(M_ != regressionData_.getTimeLocations().size()){
-
             UInt ntl = regressionData_.getTimeLocations().size();
             phi.resize(ntl, M_);
             for(UInt i = 0; i < ntl; i ++){
@@ -659,6 +655,7 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
                     }
                 }
             }
+            phi.makeCompressed();
         }
         else{
             phi = IM;
@@ -694,7 +691,7 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
         psi_.resize(n*regressionData_.getTimeLocations().size(), N_*M_);
     else
         psi_.resize(m*n, N_*M_);
-	psi_ = Eigen::kroneckerProduct(phi,psi_temp);
+	psi_ = kroneckerProduct(phi,psi_temp);
 	addNA();
 	R1_.resize(N_*M_,N_*M_);
 	R1_ = kroneckerProduct(IM,R1_temp);
@@ -754,16 +751,15 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 	}
 
-    SpMat psi2;
 	if (regressionData_.isSpaceTime() && not isSTComputed)
 	{
-        if(M_ != regressionData_.getTimeLocations().size()){
+        if(regressionData_.getFlagParabolic() && M_ != regressionData_.getTimeLocations().size()){
             UInt ntl = regressionData_.getTimeLocations().size();
             SpMat phi2_tmp(ntl, M_);
             Spline<IntegratorGaussP5,1,0>spline(mesh_time_);
             for(UInt i = 0; i < ntl; i ++){
                 for(UInt j = 0; j < M_; j++){
-                    Real coeff = spline.BasisFunction(1, j, regressionData_.getTimeLocations()[i]); 
+                    Real coeff = spline.BasisFunction(1, j+1, regressionData_.getTimeLocations()[i]); 
                     if(coeff != 0){
                         phi2_tmp.coeffRef(i, j) = coeff;
                     }
@@ -771,7 +767,8 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
                 }
             }
             //This psi_ is still the space-only matrix
-            psi2 = Eigen::kroneckerProduct(phi2_tmp, psi_);
+            phi2_tmp.makeCompressed();
+            psi2 = kroneckerProduct(phi2_tmp, psi_);
         }
 		buildSpaceTimeMatrices();
         isSTComputed = true;
@@ -804,14 +801,16 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 				R1_lambda -= lambdaS*(lambdaT*LR0k_); // build the SouthWest block of the matrix (also the NorthEast block transposed)
 
 			SpMat NWblock;
-            if(regressionData_.isSpaceTime() && regressionData_.getTimeLocations().size() != M_)
+            if(regressionData_.isSpaceTime() && regressionData_.getFlagParabolic() && regressionData_.getTimeLocations().size() != M_)
                 NWblock = psi2;
             else
                 NWblock = psi_;
 
 			// build right side of NWblock
-            if(regressionData_.getWeightsMatrix().size() != 0 ) // weights
+            if(regressionData_.getWeightsMatrix().size() != 0 ){
 				NWblock = regressionData_.getWeightsMatrix().asDiagonal()*NWblock;
+
+            } // weights
 
 			// build left side of NWblock
 			if(regressionData_.getNumberOfRegions()==0) // pointwise data
