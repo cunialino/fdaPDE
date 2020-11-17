@@ -10,16 +10,6 @@
 
 #include "R_ext/Print.h"
 
-/*
-Real deltaapprox(Real t, Real t0, Real dt, Real m){
-    Real eps = m*dt; 
-    Real csi = std::abs(t-t0)/eps;
-    if(csi <= eps)
-        return (1-csi)/eps;
-    else
-        return 0;
-}
-*/
 Real deltaapprox(Real t, Real t0, Real dt, Real m){
     Real eps = m*dt; 
     Real csi = std::abs(t-t0)/eps;
@@ -439,9 +429,15 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
 {
 	VectorXr dataHat;
 	VectorXr z = regressionData_.getObservations();
+    bool flag = (regressionData_.getFlagParabolic() && M_ != regressionData_.getTimeLocations().size());
 	if(regressionData_.getCovariates().rows()==0) //Data estimated from the model
 
-		dataHat = psi_*_solution(output_indexS,output_indexT).topRows(psi_.cols());
+        if(not flag){
+            dataHat = psi_*_solution(output_indexS,output_indexT).topRows(psi_.cols());
+        }
+        else{
+            dataHat = psi2*_solution(output_indexS,output_indexT).topRows(psi2.cols());
+        }
 	else
 		dataHat = z - LeftMultiplybyQ(z) + LeftMultiplybyQ(psi_*_solution(output_indexS,output_indexT).topRows(psi_.cols()));
 	UInt n = dataHat.rows();
@@ -474,15 +470,25 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	Real degrees=0;
 
 
+    bool flag = (regressionData_.getFlagParabolic() && M_ != regressionData_.getTimeLocations().size());
 	MatrixXr X1;
-	if (regressionData_.getNumberOfRegions() == 0){ //pointwise data
-		X1 = psi_.transpose() * LeftMultiplybyQ(psi_);
-	}else{ //areal data
-		X1 = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(psi_);
-	}
+    if(not flag){
+        if (regressionData_.getNumberOfRegions() == 0){ //pointwise data
+            X1 = psi_.transpose() * LeftMultiplybyQ(psi_);
+        }else{ //areal data
+            X1 = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(psi_);
+        }
+    }
+    else{
+        if (regressionData_.getNumberOfRegions() == 0){ //pointwise data
+            X1 = psi_.transpose() * LeftMultiplybyQ(psi2);
+        }else{ //areal data
+            X1 = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(psi2);
+        }
+    }
 	
 
-	if (isRcomputed_ == false)
+	if (not isRcomputed_)
 	{
 		isRcomputed_ = true;
 		//take R0 from the final matrix since it has already applied the dirichlet boundary conditions
@@ -649,7 +655,7 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
             phi.resize(ntl, M_);
             for(UInt i = 0; i < ntl; i ++){
                 for(UInt j = 0; j < M_; j++){
-                    Real coeff = deltaapprox(mesh_time_[j+1], regressionData_.getTimeLocations()[i], mesh_time_[1]-mesh_time_[0], 1);
+                    Real coeff = deltaapprox(mesh_time_[j+1], regressionData_.getTimeLocations()[i], mesh_time_[1]-mesh_time_[0], 2);
                     if(coeff != 0 ){
                         phi.coeffRef(i, j) = coeff;
                     }

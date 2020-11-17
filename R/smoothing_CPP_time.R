@@ -795,7 +795,7 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     }
 
     ## set of lambdas for GCV in IC estimation
-    lambdaSIC <- 10^seq(-7,3,0.1)
+    lambdaSIC <- 10^seq(-2.5, 2.5, 0.1)
     lambdaSIC <- as.matrix(lambdaSIC)
     storage.mode(lambdaSIC) <- "double"
     ## call the smoothing function with initial observations to estimates the IC
@@ -807,7 +807,7 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     if((ICsol[[4]]+1)==1)
     {
       print("Shifting lambda (left) for IC estimation")
-      lambdaSIC <- 10^seq(-9,-7,0.1)
+      lambdaSIC <- 10^seq(-7,-2.5,0.1)
       lambdaSIC <- as.matrix(lambdaSIC)
       storage.mode(lambdaSIC) <- "double"
       ICsol <- .Call("gam_Laplace", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
@@ -821,7 +821,7 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
       if((ICsol[[4]]+1)==length(lambdaSIC))
       {
       print("Shifting lambda (right) for IC estimation")
-        lambdaSIC <- 10^seq(3,5,0.1)
+        lambdaSIC <- 10^seq(2.5,5,0.1)
         lambdaSIC <- as.matrix(lambdaSIC)
         storage.mode(lambdaSIC) <- "double"
         ICsol <- .Call("gam_Laplace", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
@@ -848,7 +848,6 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
     observations = observations[(NobsIC+1):length(observations)]
     
   }
-  print("IC estimation done")
   IC <- as.matrix(IC)
   storage.mode(IC) <- "double"
 
