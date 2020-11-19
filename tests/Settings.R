@@ -1,14 +1,15 @@
 # MESH AND DATA SETTINGS
 
 f <- function(x, y, t, FAMILY){
-  if(FAMILY == "gamma")
-    return((-1.5*sin(2*pi*x)*cos(2*pi*y) + 2/5*sin(3*pi*x*t)-2)*(t+1))
+  if(sum(FAMILY == c("gamma", "poisson", "exponential")) >=1 )
+  return((-1.5*sin(2*pi*x)*cos(2*pi*y) + 2/5*sin(3*pi*x*t) - 2)*(t+1))
+ 
   if(FAMILY == "binomial")
     return((-2.5*sin(2*pi*x)*cos(2*pi*y) + 4/5*sin(pi*x*t))*(t+1))
 }
 
 fC <- function(x, y, t, FAMILY){
-  if(FAMILY == "gamma"){
+  if(sum(FAMILY == c("gamma", "poisson", "exponential"))>=1){
     a = 8
     b = 10  # 10
   }
@@ -27,6 +28,12 @@ inv.link <- function(mu, FAMILY){
   }
   if(FAMILY == "gaussian")
     return(mu)
+  if(FAMILY == "poisson"){
+   return(exp(mu)) 
+  }
+  if(FAMILY == "exponential"){
+    return(-1/mu)
+  }
 }
 settings <- function(flagMeshC = T){
   
@@ -39,17 +46,17 @@ settings <- function(flagMeshC = T){
     Settings$f = f
   if(flagMeshC){
     data("horseshoe2D")
-    Settings$xvec = seq(-1, 4, 0.02)
-    Settings$yvec = seq(-1, 1, 0.01)
+    Settings$xvec = seq(-1, 4, .04)
+    Settings$yvec = seq(-1, 1, .04)
   }
   else{
-    Settings$xvec = seq(0, 1, by = 0.01)
-    Settings$yvec = seq(0, 1, by = 0.01)
+    Settings$xvec = seq(0, 1, by = 0.04)
+    Settings$yvec = seq(0, 1, by = 0.04)
   }
   
   #Mesh settings
-  Settings$N = 16
-  Settings$M = 10
+  Settings$N = 13
+  Settings$M = 6
   
   Settings$basis_order = 1
   
@@ -72,7 +79,7 @@ settings <- function(flagMeshC = T){
   
   #Setting up the datas 
   Settings$m = 41 #Settings$M
-  Settings$n = 600
+  Settings$n = 400
   Settings$time_locations = seq(0, 1, length.out = Settings$m)
   if(flagMeshC){
     loc = cbind(runif(2*Settings$n, min = -1, max = 4), runif(2*Settings$n, min = -1, max = 1))
@@ -87,11 +94,11 @@ settings <- function(flagMeshC = T){
   }
   Settings$space_time_locations = cbind(rep(Settings$time_locations, each=nrow(Settings$loc)), rep(Settings$loc[,1],length(Settings$time_locations)), rep(Settings$loc[,2],length(Settings$time_locations)))
   Settings$FEMbasis = create.FEM.basis(Settings$mesh)
-  Settings$lambdaS = 10^0 #seq(0, 1, 0.1)
-  Settings$lambdaT = 10^0 #seq(-1, 0, 0.1)
+  Settings$lambdaS = 10^seq(-3, 3, 0.5)
+  Settings$lambdaT = 10^0 #seq(-4, 2, 0.65)
   
-  Settings$lambdaSs = 10^0 #seq(1, 1.5, 0.1)
-  Settings$lambdaTs = 10^0 #seq(-3, -2.5, 0.1)
+  Settings$lambdaSs = 10^seq(-3, 1, 1)
+  Settings$lambdaTs = 10^seq(-3, -2, 0.5)
   if(flagMeshC){
     Settings$dir_name = paste("P", 2*Settings$basis_order, "_", "M", Settings$M, "_", "n", Settings$n, "_", "m", Settings$m, sep = "")
     if(! dir.exists(Settings$dir_name)){
@@ -104,7 +111,7 @@ settings <- function(flagMeshC = T){
     Settings$fsb=list(list(boundary[,1],boundary[,2]))
     names(Settings$fsb[[1]]) = c("x","y")
     Settings$nmax = 100 #FEMbasis$nbasis
-    Settings$knots = data.frame("x"=Settings$mesh$nodes[which(Settings$mesh$nodesmarkers == 0), 1], "y"=Settings$mesh$nodes[which(Settings$mesh$nodesmarkers == 0), 2])
+    Settings$knots = data.frame(x=rep(seq(-.5,3,by=.5),4),y=rep(c(-.6,-.3,.3,.6),rep(8,4)))#data.frame("x"=Settings$mesh$nodes[which(Settings$mesh$nodesmarkers == 0), 1], "y"=Settings$mesh$nodes[which(Settings$mesh$nodesmarkers == 0), 2])
     boundaryidx <- which(Settings$mesh$nodesmarkers == 1)
   }
   else{

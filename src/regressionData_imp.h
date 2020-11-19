@@ -142,6 +142,33 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& loca
 
 {;}
 
+template<typename RegressionHandler>
+RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& locations, std::vector<Real>& time_locations, VectorXr& observations, UInt order,
+									std::vector<Real>& lambdaS, std::vector<Real>& lambdaT, Eigen::Matrix<Real,2,2>& K,
+                                    Eigen::Matrix<Real,2,1>& beta, Real c, MatrixXr& covariates, MatrixXi& incidenceMatrix,
+									std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, VectorXr& ic, bool flag_mass, bool flag_parabolic, bool DOF, bool GCV, UInt search,
+                                    Real tune, bool arealDataAvg, UInt max_num_iterations, Real threshold, MatrixXi & incidenceMatrixTime):
+		 RegressionDataElliptic(locations, time_locations, observations, order, lambdaS, lambdaT,K, beta, c, covariates, incidenceMatrix, bc_indices, bc_values, ic, flag_mass, flag_parabolic, DOF,
+                        GCV, search, tune, arealDataAvg, incidenceMatrixTime),
+         max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambdaS_(lambdaS), GCV_GAM_(GCV)
+
+{;}
+
+
+template<typename RegressionHandler>
+RegressionDataGAM<RegressionHandler>::RegressionDataGAM(std::vector<Point>& locations, std::vector<Real>& time_locations, VectorXr& observations, UInt order,
+									std::vector<Real>& lambdaS, std::vector<Real>& lambdaT,
+									const std::vector<Eigen::Matrix<Real,2,2>, Eigen::aligned_allocator<Eigen::Matrix<Real,2,2> > >& K,
+									const std::vector<Eigen::Matrix<Real,2,1>, Eigen::aligned_allocator<Eigen::Matrix<Real,2,1> > >& beta,
+									const std::vector<Real>& c, const std::vector<Real>& u,
+                                    MatrixXr& covariates, MatrixXi& incidenceMatrix,
+									std::vector<UInt>& bc_indices, std::vector<Real>& bc_values, VectorXr& ic, bool flag_mass, bool flag_parabolic, bool DOF, bool GCV, UInt search,
+                                    Real tune, bool arealDataAvg, UInt max_num_iterations, Real threshold, MatrixXi & incidenceMatrixTime):
+		 RegressionDataEllipticSpaceVarying(locations, time_locations, observations, order, lambdaS, lambdaT, K, beta, c, u, covariates, incidenceMatrix, bc_indices, bc_values, ic, flag_mass, flag_parabolic, DOF,
+                        GCV, search, tune, arealDataAvg, incidenceMatrixTime),
+         max_num_iterations_(max_num_iterations), threshold_(threshold), initialObservations_(observations), global_lambdaS_(lambdaS), GCV_GAM_(GCV)
+
+{;}
 
 #ifdef R_VERSION_
 RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP Rcovariates,
@@ -350,6 +377,46 @@ RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP Rb
 						SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP GCV, SEXP RGCVmethod,
 						SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP RincidenceMatrixTime):
     RegressionData( Rlocations,  RbaryLocations,  Rtime_locations,  Robservations,  Rorder,  RlambdaS,  RlambdaT,  Rcovariates,
+						 RincidenceMatrix,  RBCIndices,  RBCValues,  Rflag_mass,  Rflag_parabolic,  Ric,  GCV,  RGCVmethod,
+						 Rnrealizations,  DOF,  RDOF_matrix,  Rsearch,  Rtune,  RarealDataAvg, RincidenceMatrixTime)
+
+{
+
+	max_num_iterations_ = INTEGER(Rmax_num_iteration)[0];
+	threshold_ =  REAL(Rthreshold)[0];
+    initialObservations_ = this->observations_;
+    global_lambdaS_ = this->lambdaS_;
+    global_lambdaT_ = this->lambdaT_;
+    GCV_GAM_ = this->GCV_; 
+    this->GCV_ = false;
+}
+
+template<typename RegressionHandler>
+RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT,
+                        SEXP RK, SEXP Rbeta, SEXP Rc,SEXP Rcovariates,
+						SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP GCV, SEXP RGCVmethod,
+						SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP RincidenceMatrixTime):
+    RegressionDataElliptic( Rlocations,  RbaryLocations,  Rtime_locations,  Robservations,  Rorder,  RlambdaS,  RlambdaT, RK, Rbeta, Rc, Rcovariates,
+						 RincidenceMatrix,  RBCIndices,  RBCValues,  Rflag_mass,  Rflag_parabolic,  Ric,  GCV,  RGCVmethod,
+						 Rnrealizations,  DOF,  RDOF_matrix,  Rsearch,  Rtune,  RarealDataAvg, RincidenceMatrixTime)
+
+{
+
+	max_num_iterations_ = INTEGER(Rmax_num_iteration)[0];
+	threshold_ =  REAL(Rthreshold)[0];
+    initialObservations_ = this->observations_;
+    global_lambdaS_ = this->lambdaS_;
+    global_lambdaT_ = this->lambdaT_;
+    GCV_GAM_ = this->GCV_; 
+    this->GCV_ = false;
+}
+
+template<typename RegressionHandler>
+RegressionDataGAM<RegressionHandler>::RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder, SEXP RlambdaS, SEXP RlambdaT,
+                        SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates,
+						SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP GCV, SEXP RGCVmethod,
+						SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP RincidenceMatrixTime):
+    RegressionDataEllipticSpaceVarying( Rlocations,  RbaryLocations,  Rtime_locations,  Robservations,  Rorder,  RlambdaS,  RlambdaT, RK, Rbeta, Rc, Ru, Rcovariates,
 						 RincidenceMatrix,  RBCIndices,  RBCValues,  Rflag_mass,  Rflag_parabolic,  Ric,  GCV,  RGCVmethod,
 						 Rnrealizations,  DOF,  RDOF_matrix,  Rsearch,  Rtune,  RarealDataAvg, RincidenceMatrixTime)
 

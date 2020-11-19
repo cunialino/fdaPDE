@@ -1320,5 +1320,39 @@ SEXP get_FEM_PDE_space_varying_matrix(SEXP Rlocations, SEXP RbaryLocations, SEXP
     return(R_NilValue);
   }
 
+  SEXP gam_PDE_time(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rmesh, SEXP Rmesh_time, SEXP Rorder,SEXP Rmydim, SEXP Rndim,
+					SEXP RlambdaS, SEXP RlambdaT, SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Rcovariates, SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, 
+                    SEXP Ric, SEXP GCV, SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rfamily, 
+                    SEXP Rmax_num_iteration, SEXP Rmu0, SEXP RscaleParam, SEXP Rtreshold, SEXP RincidenceMatrixTime ){
+
+      GAMDataElliptic regressionData(Rlocations, RbaryLocations, Rtime_locations, Robservations, Rorder, RlambdaS, RlambdaT, RK,Rbeta, Rc, Rcovariates, RincidenceMatrix, RBCIndices, 
+              RBCValues, Rflag_mass, Rflag_parabolic, Ric, GCV, RGCVmethod, Rnrealizations, DOF, RDOF_matrix, Rsearch, Rtune, RarealDataAvg, Rmax_num_iteration, Rtreshold, RincidenceMatrixTime);
+      UInt mydim=INTEGER(Rmydim)[0];
+      UInt ndim=INTEGER(Rndim)[0];
+      std::string family = CHAR(STRING_ELT(Rfamily,0));
+
+    if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
+    	return(GAM_skeleton_time<GAMDataElliptic,IntegratorTriangleP2, 1, 2, 2>(regressionData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
+    else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
+		return(GAM_skeleton_time<GAMDataElliptic,IntegratorTriangleP4, 2, 2, 2>(regressionData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
+    return(R_NilValue);
+  }
+  SEXP gam_PDE_sv_time(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rmesh, SEXP Rmesh_time, SEXP Rorder,SEXP Rmydim, SEXP Rndim,
+					SEXP RlambdaS, SEXP RlambdaT, SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates, SEXP RincidenceMatrix, SEXP RBCIndices, SEXP RBCValues, SEXP Rflag_mass, SEXP Rflag_parabolic, 
+                    SEXP Ric, SEXP GCV, SEXP RGCVmethod, SEXP Rnrealizations, SEXP DOF, SEXP RDOF_matrix, SEXP Rsearch, SEXP Rtune, SEXP RarealDataAvg, SEXP Rfamily, 
+                    SEXP Rmax_num_iteration, SEXP Rmu0, SEXP RscaleParam, SEXP Rtreshold, SEXP RincidenceMatrixTime ){
+
+      GAMDataEllipticSpaceVarying regressionData(Rlocations, RbaryLocations, Rtime_locations, Robservations, Rorder, RlambdaS, RlambdaT, RK, Rbeta, Rc, Ru, Rcovariates, RincidenceMatrix, RBCIndices, 
+              RBCValues, Rflag_mass, Rflag_parabolic, Ric, GCV, RGCVmethod, Rnrealizations, DOF, RDOF_matrix, Rsearch, Rtune, RarealDataAvg, Rmax_num_iteration, Rtreshold, RincidenceMatrixTime);
+      UInt mydim=INTEGER(Rmydim)[0];
+      UInt ndim=INTEGER(Rndim)[0];
+      std::string family = CHAR(STRING_ELT(Rfamily,0));
+
+    if(regressionData.getOrder()==1 && mydim==2 && ndim==2)
+    	return(GAM_skeleton_time<GAMDataEllipticSpaceVarying,IntegratorTriangleP2, 1, 2, 2>(regressionData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
+    else if(regressionData.getOrder()==2 && mydim==2 && ndim==2)
+		return(GAM_skeleton_time<GAMDataEllipticSpaceVarying,IntegratorTriangleP4, 2, 2, 2>(regressionData, Rmesh, Rmesh_time, Rmu0, family, RscaleParam));
+    return(R_NilValue);
+  }
 
 }

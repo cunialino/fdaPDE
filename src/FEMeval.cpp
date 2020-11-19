@@ -16,13 +16,13 @@
 #include "projection.h"
 
 template<UInt ORDER, UInt mydim, UInt ndim>
-SEXP tree_mesh_skeleton(SEXP Rmesh) {  
+SEXP tree_mesh_skeleton(SEXP Rmesh) {
 	MeshHandler<ORDER, mydim, ndim> mesh(Rmesh);
 
-	//Copy result in R memory                
+	//Copy result in R memory
 	SEXP result = NILSXP;
 	result = PROTECT(Rf_allocVector(VECSXP, 5));
-	
+
 
 	//SEND TREE INFORMATION TO R
 	SET_VECTOR_ELT(result, 0, Rf_allocVector(INTSXP, 1)); //tree_header information
@@ -59,7 +59,7 @@ SEXP tree_mesh_skeleton(SEXP Rmesh) {
 		for(UInt i = 0; i < num_tree_nodes; i++)
 			rans4[i + num_tree_nodes*j] = mesh.getTree().gettreenode(i).getbox().get()[j];
 	}
-	
+
 
 	UNPROTECT(1);
 	return(result);
@@ -69,7 +69,7 @@ SEXP CPP_eval_FEM_fd(SEXP Rmesh, double* X,  double* Y,  double* Z, UInt n_X, UI
 {
 	SEXP result;
 
-	std::vector<UInt> element_id;	
+	std::vector<UInt> element_id;
 	Real **barycenters;
 
 	//RECIEVE BARYCENTER INFORMATION FROM R
@@ -109,14 +109,14 @@ SEXP CPP_eval_FEM_fd(SEXP Rmesh, double* X,  double* Y,  double* Z, UInt n_X, UI
 		{
 			MeshHandler<2,2,2> mesh(Rmesh, search);
 			Evaluator<2,2,2> evaluator(mesh);
-			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information	
+			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information
 				evaluator.eval(X, Y, n_X, coef, fast, REAL(result), isinside);
 			} else { //have location information
 				evaluator.evalWithInfo(X, Y, n_X, coef, fast, REAL(result), isinside, element_id, barycenters);
 			}
 		}
 		else if(order==1 && mydim==2 && ndim==3)
-		{ 
+		{
 			MeshHandler<1,2,3> mesh(Rmesh, search);
 			Evaluator<1,2,3> evaluator(mesh);
 			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information
@@ -137,10 +137,10 @@ SEXP CPP_eval_FEM_fd(SEXP Rmesh, double* X,  double* Y,  double* Z, UInt n_X, UI
 			}
 		}
 		else if(order==1 && mydim==3 && ndim==3)
-		{ 
+		{
 			MeshHandler<1,3,3> mesh(Rmesh, search);
 			Evaluator<1,3,3> evaluator(mesh);
-			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information	
+			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information
 				evaluator.eval(X, Y, Z, n_X, coef, fast, REAL(result), isinside);
 			} else { //have location information
 				evaluator.evalWithInfo(X, Y, Z, n_X, coef, fast, REAL(result), isinside, element_id, barycenters);
@@ -201,7 +201,6 @@ extern "C" {
 /*!
 	This function is then called from R code.
 	Calls the walking algoritm for efficient point location inside the mesh in 2D.
-
 	\param Rmesh an R-object containg the output mesh from Trilibrary
 	\param Rlocations an R-matrix (seen as an array) containing the xyz coordinates of the points where the solution has to be evaluated
 	\param RincidenceMatrix an R-matrix for the incidence matrix defining the regions in the case of areal data
@@ -216,8 +215,8 @@ SEXP eval_FEM_fd(SEXP Rmesh, SEXP Rlocations, SEXP RincidenceMatrix, SEXP Rcoef,
 	int n_X = INTEGER(Rf_getAttrib(Rlocations, R_DimSymbol))[0];
 	int nRegions = INTEGER(Rf_getAttrib(RincidenceMatrix, R_DimSymbol))[0];
 	int nElements = INTEGER(Rf_getAttrib(RincidenceMatrix, R_DimSymbol))[1]; //number of triangles/tetrahedron if areal data
-	
-	std::vector<UInt> element_id;	
+
+	std::vector<UInt> element_id;
 	Real **barycenters;
 
 	//RECIEVE BARYCENTER INFORMATION FROM R
@@ -305,7 +304,7 @@ SEXP eval_FEM_fd(SEXP Rmesh, SEXP Rlocations, SEXP RincidenceMatrix, SEXP Rcoef,
 		{
 			MeshHandler<2,2,2> mesh(Rmesh, search);
 			Evaluator<2,2,2> evaluator(mesh);
-			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information	
+			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information
 				evaluator.eval(X, Y, n_X, coef, fast, REAL(result), isinside);
 			} else { //have location information
 				evaluator.evalWithInfo(X, Y, n_X, coef, fast, REAL(result), isinside, element_id, barycenters);
@@ -335,7 +334,7 @@ SEXP eval_FEM_fd(SEXP Rmesh, SEXP Rlocations, SEXP RincidenceMatrix, SEXP Rcoef,
 		{
 			MeshHandler<1,3,3> mesh(Rmesh, search);
 			Evaluator<1,3,3> evaluator(mesh);
-			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information	
+			if (TYPEOF(RbaryLocations) == 0) { //doesn't have location information
 				evaluator.eval(X, Y, Z, n_X, coef, fast, REAL(result), isinside);
 			} else { //have location information
 				evaluator.evalWithInfo(X, Y, Z, n_X, coef, fast, REAL(result), isinside, element_id, barycenters);
@@ -404,7 +403,6 @@ SEXP eval_FEM_fd(SEXP Rmesh, SEXP Rlocations, SEXP RincidenceMatrix, SEXP Rcoef,
 /*!
 	This function is then called from R code.
 	Calls the walking algoritm for efficient point location inside the mesh in 2D.
-
 	\param Rmesh an R-object containg the output mesh from Trilibrary
   \param Rmesh_time an R-vector containg the time mesh
   \param Rlocations an R-matrix (seen as an array) containing the xyz coordinates of the points where the solution has to be evaluated
@@ -623,7 +621,6 @@ SEXP eval_FEM_time(SEXP Rmesh, SEXP Rmesh_time, SEXP Rlocations, SEXP Rtime_loca
 //! This function evaluates the solution on the mesh nodes at a given time with the purpose of plotting it.
 /*!
 	This function is then called from R code.
-
   \param Rns an R integer containing the number of mesh nodes
 	\param Rmesh_time an R-vector containg the time mesh
 	\param Rtime an R double containing the time at which the solution has to be evaluated
@@ -705,7 +702,7 @@ SEXP eval_FEM_time(SEXP Rmesh, SEXP Rmesh_time, SEXP Rlocations, SEXP Rtime_loca
     // Cast all computation parameters
     std::vector<Point> deData_(n_X); // the points to be projected
     std::vector<Point> prjData_(n_X); // the projected points
-    
+
     //RECIEVE PROJECTION INFORMATION FROM R
     for (int i=0; i<n_X; i++)
     {
@@ -766,3 +763,4 @@ SEXP tree_mesh_construction(SEXP Rmesh, SEXP Rorder, SEXP Rmydim, SEXP Rndim) {
 }
 
 }
+

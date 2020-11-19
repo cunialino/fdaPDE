@@ -280,12 +280,36 @@ smooth.FEM.time<-function(locations = NULL, time_locations=NULL, observations, F
   }
   else{
       checkGAMParameters(observations= observations, max.steps.FPIRLS = max.steps.FPIRLS, mu0 = mu0, scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS, family = family)
-      print('C++ Code Execution')
-      bigsol = CPP_smooth.GAM.FEM.time(locations = locations, bary.locations = bary.locations, time_locations=time_locations, observations = observations, FEMbasis = FEMbasis,
-                                       time_mesh=time_mesh, lambdaS=lambdaS, lambdaT=lambdaT, covariates = covariates, incidence_matrix = incidence_matrix, ndim=ndim, mydim=mydim,
-                                       BC = BC, FLAG_MASS=FLAG_MASS, FLAG_PARABOLIC=FLAG_PARABOLIC, IC=IC, GCV=GCV ,GCVMETHOD = GCVMETHOD, nrealizations = nrealizations,
-                                       DOF=DOF, DOF_matrix=DOF_matrix, search = search, GCV.inflation.factor = GCV.inflation.factor, areal.data.avg = areal.data.avg, family,  
-                                       max.steps.FPIRLS=max.steps.FPIRLS, threshold.FPIRLS=threshold.FPIRLS, mu0=mu0, scale.param=scale.param, incidence_matrix_time = incidence_matrix_time) 
+      if(class(FEMbasis$mesh) == 'mesh.2D' & is.null(PDE_parameters)){
+
+        bigsol = NULL
+        print('C++ Code Execution')
+        bigsol = CPP_smooth.GAM.FEM.time(locations = locations, bary.locations = bary.locations, time_locations=time_locations, observations = observations, FEMbasis = FEMbasis,
+                                         time_mesh=time_mesh, lambdaS=lambdaS, lambdaT=lambdaT, covariates = covariates, incidence_matrix = incidence_matrix, ndim=ndim, mydim=mydim,
+                                         BC = BC, FLAG_MASS=FLAG_MASS, FLAG_PARABOLIC=FLAG_PARABOLIC, IC=IC, GCV=GCV ,GCVMETHOD = GCVMETHOD, nrealizations = nrealizations,
+                                         DOF=DOF, DOF_matrix=DOF_matrix, search = search, GCV.inflation.factor = GCV.inflation.factor, areal.data.avg = areal.data.avg, family,  
+                                         max.steps.FPIRLS=max.steps.FPIRLS, threshold.FPIRLS=threshold.FPIRLS, mu0=mu0, scale.param=scale.param, incidence_matrix_time = incidence_matrix_time) 
+
+      } else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==FALSE){
+
+        bigsol = NULL
+        print('C++ Code Execution')
+        bigsol = CPP_smooth.GAM.FEM.PDE.time(locations = locations, bary.locations = bary.locations, time_locations=time_locations, observations = observations, FEMbasis = FEMbasis,
+                                         time_mesh=time_mesh, lambdaS=lambdaS, lambdaT=lambdaT, PDE_parameters = PDE_parameters, covariates = covariates, incidence_matrix = incidence_matrix, ndim=ndim, mydim=mydim,
+                                         BC = BC, FLAG_MASS=FLAG_MASS, FLAG_PARABOLIC=FLAG_PARABOLIC, IC=IC, GCV=GCV ,GCVMETHOD = GCVMETHOD, nrealizations = nrealizations,
+                                         DOF=DOF, DOF_matrix=DOF_matrix, search = search, GCV.inflation.factor = GCV.inflation.factor, areal.data.avg = areal.data.avg, family,  
+                                         max.steps.FPIRLS=max.steps.FPIRLS, threshold.FPIRLS=threshold.FPIRLS, mu0=mu0, scale.param=scale.param, incidence_matrix_time = incidence_matrix_time) 
+
+      } else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==TRUE){
+
+        bigsol = NULL
+        print('C++ Code Execution')
+        bigsol = CPP_smooth.GAM.FEM.PDE.sv.time(locations = locations, bary.locations = bary.locations, time_locations=time_locations, observations = observations, FEMbasis = FEMbasis,
+                                         time_mesh=time_mesh, lambdaS=lambdaS, lambdaT=lambdaT, PDE_parameters = PDE_parameters, covariates = covariates, incidence_matrix = incidence_matrix, ndim=ndim, mydim=mydim,
+                                         BC = BC, FLAG_MASS=FLAG_MASS, FLAG_PARABOLIC=FLAG_PARABOLIC, IC=IC, GCV=GCV ,GCVMETHOD = GCVMETHOD, nrealizations = nrealizations,
+                                         DOF=DOF, DOF_matrix=DOF_matrix, search = search, GCV.inflation.factor = GCV.inflation.factor, areal.data.avg = areal.data.avg, family,  
+                                         max.steps.FPIRLS=max.steps.FPIRLS, threshold.FPIRLS=threshold.FPIRLS, mu0=mu0, scale.param=scale.param, incidence_matrix_time = incidence_matrix_time) 
+      }
   }
 
   if(family == "gaussian"){

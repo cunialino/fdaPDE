@@ -865,3 +865,433 @@ CPP_smooth.GAM.FEM.time<-function(locations, bary.locations, time_locations, obs
                   threshold.FPIRLS, incidence_matrix_time, PACKAGE = "fdaPDE")
   return(c(bigsol, ICsol))
 }
+CPP_smooth.GAM.FEM.PDE.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, PDE_parameters, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV ,GCVMETHOD = 2, nrealizations = 100, DOF=TRUE,DOF_matrix=NULL, search, GCV.inflation.factor = 1, areal.data.avg = TRUE, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, mu0, scale.param, incidence_matrix_time) {
+
+  FEMbasis$mesh$triangles = FEMbasis$mesh$triangles - 1
+  FEMbasis$mesh$edges = FEMbasis$mesh$edges - 1
+  FEMbasis$mesh$neighbors[FEMbasis$mesh$neighbors != -1] = FEMbasis$mesh$neighbors[FEMbasis$mesh$neighbors != -1] - 1
+
+  max.steps.FPIRLS = max.steps.FPIRLS - 1
+  if(is.null(covariates))
+  {
+    covariates<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(DOF_matrix))
+  {
+    DOF_matrix<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(locations))
+  {
+    locations<-matrix(nrow = 0, ncol = 2)
+  }
+
+  if(is.null(incidence_matrix))
+  {
+    incidence_matrix<-matrix(nrow = 0, ncol = 1)
+  }
+  if(is.null(incidence_matrix_time))
+  {
+    incidence_matrix_time<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(IC))
+  {
+    IC<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(BC$BC_indices))
+  {
+    BC$BC_indices<-vector(length=0)
+  }else
+  {
+    BC$BC_indices<-as.vector(BC$BC_indices)-1
+  }
+
+  if(is.null(BC$BC_values))
+  {
+    BC$BC_values<-vector(length=0)
+  }else
+  {
+    BC$BC_values<-as.vector(BC$BC_values)
+  }
+  if(is.null(mu0))
+  {
+    mu0<-matrix(nrow = 0, ncol = 1)
+  }
+  if(is.null(scale.param))
+  {
+    scale.param<- -1
+  }
+
+  ## Set proper type for correct C++ reading
+  locations <- as.matrix(locations)
+  storage.mode(locations) <- "double"
+  time_locations <- as.matrix(time_locations)
+  storage.mode(time_locations) <- "double"
+  time_mesh <- as.matrix(time_mesh)
+  storage.mode(time_mesh) <- "double"
+  storage.mode(FEMbasis$mesh$nodes) <- "double"
+  storage.mode(FEMbasis$mesh$triangles) <- "integer"
+  storage.mode(FEMbasis$mesh$edges) <- "integer"
+  storage.mode(FEMbasis$mesh$neighbors) <- "integer"
+  storage.mode(FEMbasis$order) <- "integer"
+  covariates <- as.matrix(covariates)
+  storage.mode(covariates) <- "double"
+  DOF_matrix <- as.matrix(DOF_matrix)
+  storage.mode(DOF_matrix) <- "double"
+  incidence_matrix <- as.matrix(incidence_matrix)
+  storage.mode(incidence_matrix) <- "integer"
+  storage.mode(ndim) <- "integer"
+  storage.mode(mydim) <- "integer"
+  storage.mode(lambdaS) <- "double"
+  storage.mode(lambdaT) <- "double"
+  storage.mode(BC$BC_indices) <- "integer"
+  storage.mode(BC$BC_values) <-"double"
+
+  storage.mode(PDE_parameters$K) <- "double"
+  storage.mode(PDE_parameters$b) <- "double"
+  storage.mode(PDE_parameters$c) <- "double"
+  GCV <- as.integer(GCV)
+  storage.mode(GCV) <-"integer"
+  DOF <- as.integer(DOF)
+  storage.mode(DOF) <-"integer"
+
+  storage.mode(search) <- "integer"
+
+
+  FLAG_MASS <- as.integer(FLAG_MASS)
+  storage.mode(FLAG_MASS) <-"integer"
+
+  FLAG_PARABOLIC <- as.integer(FLAG_PARABOLIC)
+  storage.mode(FLAG_PARABOLIC) <-"integer"
+
+  storage.mode(nrealizations) <- "integer"
+  storage.mode(GCVMETHOD) <- "integer"
+
+
+
+  storage.mode(GCV.inflation.factor) <- "double"
+  areal.data.avg <- as.integer(areal.data.avg)
+  storage.mode(areal.data.avg) <-"integer"
+
+  storage.mode(FAMILY) <- "character"
+  storage.mode(max.steps.FPIRLS) <- "integer"
+  storage.mode(mu0) <- "double"
+  storage.mode(scale.param) <- "double"
+  storage.mode(threshold.FPIRLS) <- "double"
+  ICsol=NA
+  if(nrow(IC)==0 && FLAG_PARABOLIC)
+  {
+    NobsIC = length(observations)%/%nrow(time_locations)
+    notNAIC = which(!is.na(observations[1:NobsIC]))
+    observationsIC = observations[notNAIC]
+
+    if(nrow(locations)==0)
+      locationsIC=locations
+    else
+    {
+      locationsIC = as.matrix(locations[notNAIC,])
+      storage.mode(locationsIC) <- "double"
+    }
+
+    if(nrow(covariates)==0)
+      covariatesIC = covariates
+    else
+    {
+      covariatesIC = covariates[notNAIC,]
+      covariatesIC = as.matrix(covariatesIC)
+      storage.mode(covariatesIC) <- "double"
+    }
+
+    ## set of lambdas for GCV in IC estimation
+    lambdaSIC <- 10^seq(-2.5, 2.5, 0.1)
+    lambdaSIC <- as.matrix(lambdaSIC)
+    storage.mode(lambdaSIC) <- "double"
+    ## call the smoothing function with initial observations to estimates the IC
+    ICsol <- .Call("gam_PDE", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,
+                 covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+    ## shifting the lambdas interval if the best lambda is the smaller one and retry smoothing
+    if((ICsol[[4]]+1)==1)
+    {
+      print("Shifting lambda (left) for IC estimation")
+      lambdaSIC <- 10^seq(-7,-2.5,0.1)
+      lambdaSIC <- as.matrix(lambdaSIC)
+      storage.mode(lambdaSIC) <- "double"
+      ICsol <- .Call("gam_PDE", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,
+                 covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+    }
+    else
+    {
+      ## shifting the lambdas interval if the best lambda is the higher one and retry smoothing
+      if((ICsol[[4]]+1)==length(lambdaSIC))
+      {
+      print("Shifting lambda (right) for IC estimation")
+        lambdaSIC <- 10^seq(2.5,5,0.1)
+        lambdaSIC <- as.matrix(lambdaSIC)
+        storage.mode(lambdaSIC) <- "double"
+        ICsol <- .Call("gam_PDE", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,
+                 covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+      }
+    }
+    if(nrow(covariates)!=0)
+    {
+      betaIC = ICsol[[5]]
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]]+1]# best IC estimation
+      covariates=covariates[(NobsIC+1):nrow(covariates),]
+      covariates <- as.matrix(covariates)
+    }
+    else
+    {
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]]+1] ## best IC estimation
+      betaIC = NULL
+    }
+    ## return a FEM object containing IC estimates with best lambda and best lambda index
+    ICsol = list(IC.FEM=FEM(ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),],FEMbasis),bestlambdaindex=ICsol[[4]]+1,bestlambda=lambdaSIC[ICsol[[4]]+1],beta=betaIC)
+    time_locations=time_locations[2:nrow(time_locations)]
+    observations = observations[(NobsIC+1):length(observations)]
+    
+  }
+  IC <- as.matrix(IC)
+  storage.mode(IC) <- "double"
+
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+  BC$BC_indices = rep((0:(M-1))*nrow(FEMbasis$mesh$nodes),each=length(BC$BC_indices)) + rep(BC$BC_indices,M)
+  if(length(BC$BC_values) != length(BC$BC_indices))
+      BC$BC_values = rep(BC$BC_values,M)
+  storage.mode(BC$BC_indices) <- "integer"
+  storage.mode(BC$BC_values) <-"double"
+
+
+  bigsol <- .Call("gam_PDE_time",locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
+                  mydim, ndim, lambdaS, lambdaT, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c, covariates, incidence_matrix, BC$BC_indices, BC$BC_values, FLAG_MASS, FLAG_PARABOLIC,
+                  IC, GCV, GCVMETHOD, nrealizations, DOF, DOF_matrix, search, GCV.inflation.factor, areal.data.avg, FAMILY, max.steps.FPIRLS, mu0, scale.param, 
+                  threshold.FPIRLS, incidence_matrix_time, PACKAGE = "fdaPDE")
+  return(c(bigsol, ICsol))
+}
+CPP_smooth.GAM.FEM.PDE.sv.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, PDE_parameters, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV ,GCVMETHOD = 2, nrealizations = 100, DOF=TRUE,DOF_matrix=NULL, search, GCV.inflation.factor = 1, areal.data.avg = TRUE, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, mu0, scale.param, incidence_matrix_time) {
+
+  FEMbasis$mesh$triangles = FEMbasis$mesh$triangles - 1
+  FEMbasis$mesh$edges = FEMbasis$mesh$edges - 1
+  FEMbasis$mesh$neighbors[FEMbasis$mesh$neighbors != -1] = FEMbasis$mesh$neighbors[FEMbasis$mesh$neighbors != -1] - 1
+
+  max.steps.FPIRLS = max.steps.FPIRLS - 1
+  if(is.null(covariates))
+  {
+    covariates<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(DOF_matrix))
+  {
+    DOF_matrix<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(locations))
+  {
+    locations<-matrix(nrow = 0, ncol = 2)
+  }
+
+  if(is.null(incidence_matrix))
+  {
+    incidence_matrix<-matrix(nrow = 0, ncol = 1)
+  }
+  if(is.null(incidence_matrix_time))
+  {
+    incidence_matrix_time<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(IC))
+  {
+    IC<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(BC$BC_indices))
+  {
+    BC$BC_indices<-vector(length=0)
+  }else
+  {
+    BC$BC_indices<-as.vector(BC$BC_indices)-1
+  }
+
+  if(is.null(BC$BC_values))
+  {
+    BC$BC_values<-vector(length=0)
+  }else
+  {
+    BC$BC_values<-as.vector(BC$BC_values)
+  }
+  if(is.null(mu0))
+  {
+    mu0<-matrix(nrow = 0, ncol = 1)
+  }
+  if(is.null(scale.param))
+  {
+    scale.param<- -1
+  }
+
+  ## Set proper type for correct C++ reading
+  locations <- as.matrix(locations)
+  storage.mode(locations) <- "double"
+  time_locations <- as.matrix(time_locations)
+  storage.mode(time_locations) <- "double"
+  time_mesh <- as.matrix(time_mesh)
+  storage.mode(time_mesh) <- "double"
+  storage.mode(FEMbasis$mesh$nodes) <- "double"
+  storage.mode(FEMbasis$mesh$triangles) <- "integer"
+  storage.mode(FEMbasis$mesh$edges) <- "integer"
+  storage.mode(FEMbasis$mesh$neighbors) <- "integer"
+  storage.mode(FEMbasis$order) <- "integer"
+  covariates <- as.matrix(covariates)
+  storage.mode(covariates) <- "double"
+  DOF_matrix <- as.matrix(DOF_matrix)
+  storage.mode(DOF_matrix) <- "double"
+  incidence_matrix <- as.matrix(incidence_matrix)
+  storage.mode(incidence_matrix) <- "integer"
+  storage.mode(ndim) <- "integer"
+  storage.mode(mydim) <- "integer"
+  storage.mode(lambdaS) <- "double"
+  storage.mode(lambdaT) <- "double"
+  storage.mode(BC$BC_indices) <- "integer"
+  storage.mode(BC$BC_values) <-"double"
+
+  storage.mode(PDE_parameters$K) <- "double"
+  storage.mode(PDE_parameters$b) <- "double"
+  storage.mode(PDE_parameters$c) <- "double"
+  storage.mode(PDE_parameters$u) <- "double"
+
+  GCV <- as.integer(GCV)
+  storage.mode(GCV) <-"integer"
+  DOF <- as.integer(DOF)
+  storage.mode(DOF) <-"integer"
+
+  storage.mode(search) <- "integer"
+
+
+  FLAG_MASS <- as.integer(FLAG_MASS)
+  storage.mode(FLAG_MASS) <-"integer"
+
+  FLAG_PARABOLIC <- as.integer(FLAG_PARABOLIC)
+  storage.mode(FLAG_PARABOLIC) <-"integer"
+
+  storage.mode(nrealizations) <- "integer"
+  storage.mode(GCVMETHOD) <- "integer"
+
+
+
+  storage.mode(GCV.inflation.factor) <- "double"
+  areal.data.avg <- as.integer(areal.data.avg)
+  storage.mode(areal.data.avg) <-"integer"
+
+  storage.mode(FAMILY) <- "character"
+  storage.mode(max.steps.FPIRLS) <- "integer"
+  storage.mode(mu0) <- "double"
+  storage.mode(scale.param) <- "double"
+  storage.mode(threshold.FPIRLS) <- "double"
+  ICsol=NA
+  if(nrow(IC)==0 && FLAG_PARABOLIC)
+  {
+    NobsIC = length(observations)%/%nrow(time_locations)
+    notNAIC = which(!is.na(observations[1:NobsIC]))
+    observationsIC = observations[notNAIC]
+
+    if(nrow(locations)==0)
+      locationsIC=locations
+    else
+    {
+      locationsIC = as.matrix(locations[notNAIC,])
+      storage.mode(locationsIC) <- "double"
+    }
+
+    if(nrow(covariates)==0)
+      covariatesIC = covariates
+    else
+    {
+      covariatesIC = covariates[notNAIC,]
+      covariatesIC = as.matrix(covariatesIC)
+      storage.mode(covariatesIC) <- "double"
+    }
+
+    ## set of lambdas for GCV in IC estimation
+    lambdaSIC <- 10^seq(-2.5, 2.5, 0.1)
+    lambdaSIC <- as.matrix(lambdaSIC)
+    storage.mode(lambdaSIC) <- "double"
+    ## call the smoothing function with initial observations to estimates the IC
+    ICsol <- .Call("gam_PDE_space_varying", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,PDE_parameters$u,
+                 covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+    ## shifting the lambdas interval if the best lambda is the smaller one and retry smoothing
+    if((ICsol[[4]]+1)==1)
+    {
+      print("Shifting lambda (left) for IC estimation")
+      lambdaSIC <- 10^seq(-7,-2.5,0.1)
+      lambdaSIC <- as.matrix(lambdaSIC)
+      storage.mode(lambdaSIC) <- "double"
+      ICsol <- .Call("gam_PDE_space_varying", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,PDE_parameters$u,
+                 covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+    }
+    else
+    {
+      ## shifting the lambdas interval if the best lambda is the higher one and retry smoothing
+      if((ICsol[[4]]+1)==length(lambdaSIC))
+      {
+      print("Shifting lambda (right) for IC estimation")
+        lambdaSIC <- 10^seq(2.5,5,0.1)
+        lambdaSIC <- as.matrix(lambdaSIC)
+        storage.mode(lambdaSIC) <- "double"
+        ICsol <- .Call("gam_PDE_space_varying", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
+                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,PDE_parameters$u,
+                 covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
+                 T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
+
+      }
+    }
+    if(nrow(covariates)!=0)
+    {
+      betaIC = ICsol[[5]]
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]]+1]# best IC estimation
+      covariates=covariates[(NobsIC+1):nrow(covariates),]
+      covariates <- as.matrix(covariates)
+    }
+    else
+    {
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]]+1] ## best IC estimation
+      betaIC = NULL
+    }
+    ## return a FEM object containing IC estimates with best lambda and best lambda index
+    ICsol = list(IC.FEM=FEM(ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),],FEMbasis),bestlambdaindex=ICsol[[4]]+1,bestlambda=lambdaSIC[ICsol[[4]]+1],beta=betaIC)
+    time_locations=time_locations[2:nrow(time_locations)]
+    observations = observations[(NobsIC+1):length(observations)]
+    
+  }
+  IC <- as.matrix(IC)
+  storage.mode(IC) <- "double"
+
+  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+  BC$BC_indices = rep((0:(M-1))*nrow(FEMbasis$mesh$nodes),each=length(BC$BC_indices)) + rep(BC$BC_indices,M)
+  if(length(BC$BC_values) != length(BC$BC_indices))
+      BC$BC_values = rep(BC$BC_values,M)
+  storage.mode(BC$BC_indices) <- "integer"
+  storage.mode(BC$BC_values) <-"double"
+
+
+  bigsol <- .Call("gam_PDE_sv_time",locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
+                  mydim, ndim, lambdaS, lambdaT, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c, PDE_parameters$u, covariates, incidence_matrix, BC$BC_indices, BC$BC_values, FLAG_MASS, FLAG_PARABOLIC,
+                  IC, GCV, GCVMETHOD, nrealizations, DOF, DOF_matrix, search, GCV.inflation.factor, areal.data.avg, FAMILY, max.steps.FPIRLS, mu0, scale.param, 
+                  threshold.FPIRLS, incidence_matrix_time, PACKAGE = "fdaPDE")
+  return(c(bigsol, ICsol))
+}
