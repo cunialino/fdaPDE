@@ -1,10 +1,10 @@
 # MESH AND DATA SETTINGS
 
 f <- function(x, y, t, FAMILY){
-  if(sum(FAMILY == c("gamma", "poisson", "exponential")) >=1 )
+  if(sum(FAMILY == c("gamma", "exponential")) >=1 )
   return((-1.5*sin(2*pi*x)*cos(2*pi*y) + 2/5*sin(3*pi*x*t) - 2)*(t+1))
  
-  if(FAMILY == "binomial")
+  if(sum(FAMILY == c("binomial", "poisson")) >= 1)
     return((-2.5*sin(2*pi*x)*cos(2*pi*y) + 4/5*sin(pi*x*t))*(t+1))
 }
 
@@ -13,7 +13,7 @@ fC <- function(x, y, t, FAMILY){
     a = 8
     b = 10  # 10
   }
-  if(sum(FAMILY == c("binomial", "gaussian")) >= 1){
+  if(sum(FAMILY == c("binomial", "poisson", "gaussian")) >= 1){
     a = -3
     b = 0
   }
@@ -38,6 +38,14 @@ inv.link <- function(mu, FAMILY){
 settings <- function(flagMeshC = T){
   
   Settings = NULL
+  
+  Settings$N = 16
+  Settings$M = 6
+  
+  Settings$m = Settings$M
+  Settings$n = 400
+  
+  Settings$PDE_parameters = NULL
   Settings$scale = .05
   Settings$inv.link <- inv.link
   if(flagMeshC)
@@ -46,17 +54,15 @@ settings <- function(flagMeshC = T){
     Settings$f = f
   if(flagMeshC){
     data("horseshoe2D")
-    Settings$xvec = seq(-1, 4, .04)
-    Settings$yvec = seq(-1, 1, .04)
+    Settings$xvec = seq(-1, 4, .02)
+    Settings$yvec = seq(-1, 1, .02)
   }
   else{
-    Settings$xvec = seq(0, 1, by = 0.04)
-    Settings$yvec = seq(0, 1, by = 0.04)
+    Settings$xvec = seq(0, 1, by = 0.03)
+    Settings$yvec = seq(0, 1, by = 0.03)
   }
   
   #Mesh settings
-  Settings$N = 13
-  Settings$M = 6
   
   Settings$basis_order = 1
   
@@ -67,6 +73,8 @@ settings <- function(flagMeshC = T){
     boundary_segments = horseshoe2D$boundary_segments
     locations = horseshoe2D$locations
     Settings$mesh = create.mesh.2D(nodes = rbind(boundary_nodes, locations), segments = boundary_segments, order = Settings$basis_order)
+    dimeval = 10000
+    Settings$evalGrid <- data.frame(t = runif(n = dimeval, 0, 1),x= runif(n=dimeval, -1, 4),y= runif(n = dimeval, -1, 1))
   }
   else{
     tmp <- cbind(rep(seq(0, 1, length.out = Settings$N), Settings$N), rep(seq(0, 1, length.out = Settings$N), each = Settings$N))
@@ -78,9 +86,7 @@ settings <- function(flagMeshC = T){
   Settings$time_mesh = seq(0, 1, length.out = Settings$M)
   
   #Setting up the datas 
-  Settings$m = 41 #Settings$M
-  Settings$n = 400
-  Settings$time_locations = seq(0, 1, length.out = Settings$m)
+  Settings$time_locations =seq(0, 1, length.out = Settings$m) #c(0, sort(runif(Settings$m, 0.0001, 1))) #
   if(flagMeshC){
     loc = cbind(runif(2*Settings$n, min = -1, max = 4), runif(2*Settings$n, min = -1, max = 1))
     ww <- apply(loc, 1, is.p.in.horseshoe) #! is.na(fs.test(loc[,1], loc[ ,2], exclude = T))
@@ -94,11 +100,11 @@ settings <- function(flagMeshC = T){
   }
   Settings$space_time_locations = cbind(rep(Settings$time_locations, each=nrow(Settings$loc)), rep(Settings$loc[,1],length(Settings$time_locations)), rep(Settings$loc[,2],length(Settings$time_locations)))
   Settings$FEMbasis = create.FEM.basis(Settings$mesh)
-  Settings$lambdaS = 10^seq(-3, 3, 0.5)
-  Settings$lambdaT = 10^0 #seq(-4, 2, 0.65)
+  Settings$lambdaS = 10^seq(-3, 2, 0.5)
+  Settings$lambdaT = 10^seq(-3, 1, 0.5)
   
-  Settings$lambdaSs = 10^seq(-3, 1, 1)
-  Settings$lambdaTs = 10^seq(-3, -2, 0.5)
+  Settings$lambdaSs = 10^seq(-3, 2, .5)
+  Settings$lambdaTs = 10^seq(-3, -1, 0.5)
   if(flagMeshC){
     Settings$dir_name = paste("P", 2*Settings$basis_order, "_", "M", Settings$M, "_", "n", Settings$n, "_", "m", Settings$m, sep = "")
     if(! dir.exists(Settings$dir_name)){
@@ -129,7 +135,6 @@ settings <- function(flagMeshC = T){
     Settings$nmax = 100
     Settings$knots = data.frame("x"=Settings$mesh$nodes[which(Settings$mesh$nodesmarkers == 0), 1], "y"=Settings$mesh$nodes[which(Settings$mesh$nodesmarkers == 0), 2])
   }
-  # save(list = c("Settings"), file = paste(Settings$dir_name, "/Settings.RData", sep = ""))
   return(Settings)
 }
 

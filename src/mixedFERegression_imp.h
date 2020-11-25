@@ -10,16 +10,35 @@
 
 #include "R_ext/Print.h"
 
+/*
+Real deltaapprox(Real t, Real t0, Real dt, Real m){
+    Real eps = m*dt; 
+    Real csi = std::abs(t-t0)/eps;
+    if(csi <= 1)
+        return (1-csi)/eps;
+    else 
+        return 0;
+}
 Real deltaapprox(Real t, Real t0, Real dt, Real m){
     Real eps = m*dt; 
     Real csi = std::abs(t-t0)/eps;
     if(csi <= 0.5*eps)
         return (2 - 2*csi - 8*std::pow(csi, 2) + 8*std::pow(csi, 3))/eps;
     else if(csi <= 1*eps)
-        return std::abs( 2 - 22/3.*csi + 8*std::pow(csi, 2) - 8/3.*std::pow(csi, 3) )/eps;
+        return ( 2 - 22/3.*csi + 8*std::pow(csi, 2) - 8/3.*std::pow(csi, 3) )/eps;
     else 
         return 0;
 }
+*/
+Real deltaapprox(Real t, Real t0, Real dt, Real m){
+    Real eps = m*dt; 
+    Real csi = std::abs(t-t0)/eps;
+    if(csi <= 1*eps)
+        return ( 9/2. - 18*csi + 15*std::pow(csi, 2))/eps;
+    else 
+        return 0;
+}
+
 
 template<typename InputHandler, typename IntegratorSpace, UInt ORDER, typename IntegratorTime, UInt SPLINE_DEGREE, UInt ORDER_DERIVATIVE, UInt mydim, UInt ndim>
 void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, SPLINE_DEGREE, ORDER_DERIVATIVE, mydim, ndim>::addDirichletBC()
@@ -291,11 +310,22 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 		U_ = MatrixXr::Zero(2*nnodes, W.cols());
 		V_ = MatrixXr::Zero(W.cols(),2*nnodes);
 
-		if(P.size()==0){
-			V_.leftCols(nnodes) = W.transpose()*psi_;
-		}else{
-			V_.leftCols(nnodes) = W.transpose()*P.asDiagonal()*psi_;
-		}
+        bool flag = (regressionData_.getFlagParabolic() && M_ != regressionData_.getTimeLocations().size());
+
+        if(flag){
+            if(P.size()==0){
+                V_.leftCols(nnodes) = W.transpose()*psi2;
+            }else{
+                V_.leftCols(nnodes) = W.transpose()*P.asDiagonal()*psi2;
+            }
+        }
+        else{
+            if(P.size()==0){
+                V_.leftCols(nnodes) = W.transpose()*psi_;
+            }else{
+                V_.leftCols(nnodes) = W.transpose()*P.asDiagonal()*psi_;
+            }
+        }
 		// build "right side" of U_
 		if(P.size() == 0)
 			U_.topRows(nnodes) = W;
@@ -309,7 +339,9 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 		else{                                          //areal data
 		  U_.topRows(nnodes) = psi_.transpose()*A_.asDiagonal()*U_.topRows(nnodes);
     	}
-		MatrixXr D = V_*matrixNoCovdec_.solve(U_);
+        MatrixXr D;
+        if(matrixNoCovdec_.info() == 0)
+		    D = V_*matrixNoCovdec_.solve(U_);
 		// G = C + D
 		MatrixXr G;
 		if(P.size()==0){
@@ -328,7 +360,6 @@ MatrixXr MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTim
 {
 
 	// Resolution of the system matrixNoCov * x1 = b
-    //std::cerr << "Determinant: " << matrixNoCovdec_.determinant() << std::endl;
     if(matrixNoCovdec_.info() == 0){
         MatrixXr x1 = matrixNoCovdec_.solve(b);
         if (regressionData_.getCovariates().rows() != 0) {
@@ -381,7 +412,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 	if (regressionData_.getCovariates().rows() == 0) //no covariate
 	{
-		if (regressionData_.isLocationsByNodes() )
+		if (regressionData_.isLocationsByNodes() && not (regressionData_.isSpaceTime() && not regressionData_.getFlagParabolic() ))
 		{
 				VectorXr tmp = LeftMultiplybyQ(obs);
 				for (auto i=0; i<nlocations;++i)
@@ -438,8 +469,13 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
         else{
             dataHat = psi2*_solution(output_indexS,output_indexT).topRows(psi2.cols());
         }
-	else
-		dataHat = z - LeftMultiplybyQ(z) + LeftMultiplybyQ(psi_*_solution(output_indexS,output_indexT).topRows(psi_.cols()));
+    else{
+
+        if(not flag)
+            dataHat = z - LeftMultiplybyQ(z) + LeftMultiplybyQ(psi_*_solution(output_indexS,output_indexT).topRows(psi_.cols()));
+        else
+            dataHat = z - LeftMultiplybyQ(z) + LeftMultiplybyQ(psi2*_solution(output_indexS,output_indexT).topRows(psi2.cols()));
+    }
 	UInt n = dataHat.rows();
 	if(regressionData_.isSpaceTime())
 		{
@@ -608,16 +644,22 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 
 	// Define the first right hand side : | I  0 |^T * psi^T * A * Q * u
 	MatrixXr b = MatrixXr::Zero(2*nnodes,u.cols());
-	if (regressionData_.getNumberOfRegions() == 0){
-		b.topRows(nnodes) = psi_.transpose() * LeftMultiplybyQ(u);
-	}else{
-		b.topRows(nnodes) = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(u);
-	}
+    if (regressionData_.getNumberOfRegions() == 0){
+        b.topRows(nnodes) = psi_.transpose() * LeftMultiplybyQ(u);
+    }else{
+        b.topRows(nnodes) = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(u);
+    }
 
 	// Resolution of the system
 	MatrixXr x = system_solve(b);
 
-	MatrixXr uTpsi = u.transpose()*psi_;
+    MatrixXr uTpsi; 
+    if(regressionData_.getFlagParabolic() && M_ != regressionData_.getTimeLocations().size()){
+        uTpsi = u.transpose()*psi2;
+    }
+    else{
+        uTpsi = u.transpose()*psi_;
+    }
 	VectorXr edf_vect(nrealizations);
 	Real q = 0;
 
@@ -655,7 +697,7 @@ void MixedFERegressionBase<InputHandler, IntegratorSpace, ORDER, IntegratorTime,
             phi.resize(ntl, M_);
             for(UInt i = 0; i < ntl; i ++){
                 for(UInt j = 0; j < M_; j++){
-                    Real coeff = deltaapprox(mesh_time_[j+1], regressionData_.getTimeLocations()[i], mesh_time_[1]-mesh_time_[0], 2);
+                    Real coeff = deltaapprox(mesh_time_[j+1], regressionData_.getTimeLocations()[i], mesh_time_[1]-mesh_time_[0], 0.01);
                     if(coeff != 0 ){
                         phi.coeffRef(i, j) = coeff;
                     }
@@ -760,6 +802,7 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 	if (regressionData_.isSpaceTime() && not isSTComputed)
 	{
         if(regressionData_.getFlagParabolic() && M_ != regressionData_.getTimeLocations().size()){
+            std::cerr << "M != m" << std::endl;
             UInt ntl = regressionData_.getTimeLocations().size();
             SpMat phi2_tmp(ntl, M_);
             Spline<IntegratorGaussP5,1,0>spline(mesh_time_);
@@ -866,13 +909,20 @@ void MixedFERegressionBase<InputHandler,IntegratorSpace,ORDER, IntegratorTime, S
 			// covariates computation
 			if(regressionData_.getCovariates().rows()!=0)
 			{
+                bool flag = (regressionData_.getFlagParabolic() && M_ != regressionData_.getTimeLocations().size());
 				MatrixXr W(this->regressionData_.getCovariates());
 				VectorXr P(this->regressionData_.getWeightsMatrix());
 				VectorXr beta_rhs;
 				if( P.size() !=0){
-					beta_rhs = W.transpose()*P.asDiagonal()*(regressionData_.getObservations() - psi_*_solution(s,t).topRows(psi_.cols()));
+                    if(not flag)
+                        beta_rhs = W.transpose()*P.asDiagonal()*(regressionData_.getObservations() - psi_*_solution(s,t).topRows(psi_.cols()));
+                    else
+                        beta_rhs = W.transpose()*P.asDiagonal()*(regressionData_.getObservations() - psi2*_solution(s,t).topRows(psi2.cols()));
 				}else{
-					beta_rhs = W.transpose()*(regressionData_.getObservations() - psi_*_solution(s,t).topRows(psi_.cols()));
+                    if(not flag)
+                        beta_rhs = W.transpose()*(regressionData_.getObservations() - psi_*_solution(s,t).topRows(psi_.cols()));
+                    else
+                        beta_rhs = W.transpose()*(regressionData_.getObservations() - psi2*_solution(s,t).topRows(psi2.cols()));
 				}
 				_beta(s,t) = WTW_.solve(beta_rhs);
 			}

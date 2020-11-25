@@ -45,18 +45,58 @@ plot.settings <- function(f, inv.link, data, set, filename){
   dev.off()
 }
 
-plot.results<- function(TrueMats, Mats, MatsSep = NULL, TPSMats=NULL, SOAPMats=NULL, time_mesh, set, filename){
+plot.results<- function(sols, set, filename){
   
+  TrueMats = NULL
+  Mats = NULL
+  MatsSep = NULL
+  TPSMats = NULL
+  SOAPMats = NULL
+  c = 1
+  if(! is.null(sols$TPS) | ! is.null(sols$SOAP))
+    if(sum(set$FAMILY == c("gamma", "exponential")) >= 1)
+      c = -1
+  evalGrid <- expand.grid(c(0, .25, .5, .75, 1), set$xvec, set$yvec)
+  evalGrid <- evalGrid[order(evalGrid[, 1]), ]
+  if(! is.null(set$betas)){
+    
+    evalGrid$cov1 <- rep(0, nrow(evalGrid))
+    evalGrid$cov2 <- rep(0, nrow(evalGrid))
+  }
+  names(evalGrid) <- c("t", "x", "y")
+  if(! is.null(sols$GSRPDE))
+    gsrpde <- eval.FEM.time(sols$GSRPDE$fit.FEM.time, space.time.locations = evalGrid[, 1:3], lambdaS = sols$GSRPDE$bestlambda[1], lambdaT = sols$GSRPDE$bestlambda[2])
+  if(! is.null(sols$GSRtPDE))
+    gsrtpde <- eval.FEM.time(sols$GSRtPDE$fit.FEM.time, space.time.locations = evalGrid[,1:3], lambdaS = sols$GSRtPDE$bestlambda[1], lambdaT = sols$GSRtPDE$bestlambda[2])
+  if(! is.null(sols$TPS))
+    tps <- predict.gam(sols$TPS, newdata = evalGrid) #, block.size = 10, type = "lpmatrix")%*%coef(sols$TPS)
+  if(! is.null(sols$SOAP))
+    soap <- predict.gam(sols$SOAP, newdata = evalGrid) #, block.size = 10, type = "lpmatrix")%*%coef(sols$SOAP)
+  true <- set$f(evalGrid$x, evalGrid$y, evalGrid$t, set$FAMILY)
+  nx <- length(set$xvec)
+  ny <- length(set$yvec)
+  for(j in 1:5){
+    TrueMats[[j]]<- matrix(true[(1+(j-1)*nx*ny):(j*nx*ny)], nrow = nx, ncol = ny)
+    if(! is.null(sols$GSRPDE))
+       Mats[[j]] <- matrix(gsrpde[(1+(j-1)*nx*ny):(j*nx*ny)], nrow = nx, ncol = ny)
+    if(! is.null(sols$GSRtPDE))
+       MatsSep[[j]] <- matrix(gsrtpde[(1+(j-1)*nx*ny):(j*nx*ny)], nrow = nx, ncol = ny)
+    if(! is.null(sols$TPS))
+      TPSMats[[j]] <- c*matrix(tps[(1+(j-1)*nx*ny):(j*nx*ny)], nrow = nx, ncol = ny)
+    if(! is.null(sols$SOAP))
+      SOAPMats[[j]] <- c*matrix(soap[(1+(j-1)*nx*ny):(j*nx*ny)], nrow = nx, ncol = ny)
+  }
   if(! is.null(TPSMats)){
     TPSMats = lapply(TPSMats, function(x) x+0*TrueMats[[1]])
   }
-  whichones <- c(!is.null(MatsSep), !is.null(TPSMats), !is.null(SOAPMats))
-  numplot <- 2 + sum(whichones)
+  whichones <- c(!is.null(Mats), !is.null(MatsSep), !is.null(TPSMats), !is.null(SOAPMats))
+  numplot <- 1 + sum(whichones)
   
   zl =range(TrueMats, Mats, TPSMats, SOAPMats, na.rm = T)
   jpeg(filename = filename, width = 1200, height = 1200, res = 300)
   par(mfrow = c(5, numplot), oma = c(.1, 2, 2, .1), mar = c(.1, .1, .1, .1))
-  for(j in seq(1, length(time_mesh), length.out = 5)){
+  time_mesh = seq(0, 1, length.out = 5)
+  for(j in seq(1, 5)){
     lvR <- range(TrueMats[[j]], Mats[[j]], TPSMats[[j]], SOAPMats[[j]], na.rm = T)
     levs = round(seq(lvR[1], lvR[2], length.out = 10), digits = 1)
     image(set$xvec,set$yvec,TrueMats[[j]],col=heat.colors(100), xlab = "", ylab=paste("Time ", time_mesh[j]), zlim = zl, axes = F, cex = textcex)
@@ -65,26 +105,28 @@ plot.results<- function(TrueMats, Mats, MatsSep = NULL, TPSMats=NULL, SOAPMats=N
     if(j == 1){
       mtext("True Field", font = 2, cex = titlecex)
     }
-    image(set$xvec,set$yvec,Mats[[j]],col=heat.colors(100), xlab = "", ylab = "", zlim = zl, axes = F, cex = textcex)
-    contour(set$xvec,set$yvec,Mats[[j]],add=TRUE, labcex = labcex, zlim = zl, levels = levs, lwd = lwd) 
-    if(j == 1){
-      mtext("GSR-PDE", font = 2, cex = titlecex)
-    }
     if(whichones[1]){
+      image(set$xvec,set$yvec,Mats[[j]],col=heat.colors(100), xlab = "", ylab = "", zlim = zl, axes = F, cex = textcex)
+      contour(set$xvec,set$yvec,Mats[[j]],add=TRUE, labcex = labcex, zlim = zl, levels = levs, lwd = lwd) 
+      if(j == 1){
+        mtext("GSR-PDE", font = 2, cex = titlecex)
+      }
+    }
+    if(whichones[2]){
       image(set$xvec,set$yvec,MatsSep[[j]],col=heat.colors(100), xlab = "", ylab = "", zlim = zl, axes = F, cex = textcex)
       contour(set$xvec,set$yvec,MatsSep[[j]],add=TRUE, labcex = labcex, zlim = zl, levels = levs, lwd = lwd) 
       if(j == 1){
         mtext("GSRt-PDE", font = 2, cex = titlecex)
       }
     }
-    if(whichones[2]){
+    if(whichones[3]){
       image(set$xvec,set$yvec,TPSMats[[j]],col=heat.colors(100), xlab = "", ylab = "", zlim = zl, axes = F, cex = textcex)
       contour(set$xvec,set$yvec,TPSMats[[j]],add=TRUE, labcex = labcex, zlim = zl, levels = levs, lwd = lwd)
       if(j == 1){
         mtext("TPS", font = 2, cex = titlecex)
       }
     }
-    if(whichones[3]){
+    if(whichones[4]){
       image(set$xvec,set$yvec,SOAPMats[[j]],col=heat.colors(100), xlab = "", ylab = "", zlim = zl, axes = F, cex = textcex)
       contour(set$xvec,set$yvec,SOAPMats[[j]],add=TRUE, labcex = labcex, zlim = zl, levels = levs, lwd = lwd)
       if(j == 1){

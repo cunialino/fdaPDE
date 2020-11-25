@@ -217,7 +217,7 @@ RegressionData::RegressionData(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_
 	setTimeLocations(Rtime_locations);
 	setBaryLocations(RbaryLocations);
 	setIncidenceMatrix(RincidenceMatrix);
-    setIncidenceMatrixTime(RincidenceMatrixTime);
+//    setIncidenceMatrixTime(RincidenceMatrixTime);
 	setObservationsTime(Robservations);
 	setCovariates(Rcovariates);
 	setNrealizations(Rnrealizations);

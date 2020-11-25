@@ -54,7 +54,8 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::apply( const Forci
   // Initialize the outputs. The temporal dimension is not implemented, for this reason the 2nd dimension is set to 1.
   //
   /* Quando hai fatto tutto qua devi adattare la seconda dimensione per il caso separabile, quindi con LambdaT:  <07-09-20, Elia Cunial> */
-  if( this->inputData_.getCovariates().rows() > 0 )_beta_hat.resize(LambdaS_len,LambdaT_len);
+  if( this->inputData_.getCovariates().rows() > 0 ) 
+      _beta_hat.resize(LambdaS_len,LambdaT_len);
   _fn_hat.resize(LambdaS_len,LambdaT_len);
   _dof.resize(LambdaS_len,LambdaT_len);
   _solution.resize(LambdaS_len,LambdaT_len);
@@ -307,23 +308,28 @@ template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UI
 void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_GCV(UInt& lambdaS_index, UInt&lambdaT_index){
 
   //GCV COMPUTATION
-  if ( inputData_.computeDOF() ){ // is DOF_matrix to be computed?
-    auto lambdas = this->inputData_.getGlobalLambda(lambdaS_index, lambdaT_index);
-    regression_.computeDegreesOfFreedom(0, 0, lambdas[0], lambdas[1]);
-  }
-  _dof(lambdaS_index,lambdaT_index) = regression_.getDOF()(0,0);
-
-  VectorXr y = inputData_.getInitialObservations();
   Real GCV_value = 0;
+    if(regression_.getDecInfo() != 0){
+        GCV_value = 10e20;
+    }
+    else{
+      if ( inputData_.computeDOF() ){ // is DOF_matrix to be computed?
+        auto lambdas = this->inputData_.getGlobalLambda(lambdaS_index, lambdaT_index);
+        regression_.computeDegreesOfFreedom(0, 0, lambdas[0], lambdas[1]);
+      }
+      _dof(lambdaS_index,lambdaT_index) = regression_.getDOF()(0,0);
 
-  for(UInt j=0; j < y.size();j++)
-    GCV_value += dev_function(mu_[j], y[j]); //norm computation
+      VectorXr y = inputData_.getInitialObservations();
 
-  GCV_value *= y.size();
+      for(UInt j=0; j < y.size();j++)
+        GCV_value += dev_function(mu_[j], y[j]); //norm computation
 
-  GCV_value /= (y.size()-inputData_.getTuneParam()*_dof(lambdaS_index,lambdaT_index))*(y.size()-inputData_.getTuneParam()*_dof(lambdaS_index,lambdaT_index));
+      GCV_value *= y.size();
 
-  _GCV( lambdaS_index, lambdaT_index ) = GCV_value;
+      GCV_value /= (y.size()-inputData_.getTuneParam()*_dof(lambdaS_index,lambdaT_index))*(y.size()-inputData_.getTuneParam()*_dof(lambdaS_index,lambdaT_index));
+
+      _GCV( lambdaS_index, lambdaT_index ) = GCV_value;
+    }
 
   //best lambda
   if ( GCV_value < _bestGCV)
@@ -338,7 +344,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_GCV(UInt& 
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
 void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_variance_est(UInt & lambdaS_index, UInt & lambdaT_index){
   Real phi; 
-  if(this->scale_parameter_flag_ ){// if scale param should be 
+  if(this->scale_parameter_flag_ && regression_.getDecInfo() == 0){// if scale param should be and there were no numerical issues 
     const UInt n_obs = this->inputData_.getObservations().size();
 
     //scale parameter computed as: mean((var.link(mu)*phi)/mu), and phi is computed as in Wood IGAM

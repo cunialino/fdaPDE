@@ -391,7 +391,7 @@ CPP_smooth.FEM.PDE.time<-function(locations, bary.locations, time_locations, obs
   return(c(bigsol,ICsol))
 }
 
-CPP_smooth.FEM.PDE.sv.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, PDE_parameters, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV,GCVMETHOD = 2, nrealizations = 100, search, DOF=TRUE,DOF_matrix=NULL, GCV.inflation.factor = 1, areal.data.avg = TRUE)
+CPP_smooth.FEM.PDE.sv.time<-function(locations, bary.locations, time_locations, observations, FEMbasis, time_mesh, lambdaS, lambdaT, PDE_parameters, covariates = NULL, incidence_matrix = NULL, ndim, mydim, BC = NULL, FLAG_MASS, FLAG_PARABOLIC, IC, GCV,GCVMETHOD = 2, nrealizations = 100, search, DOF=TRUE,DOF_matrix=NULL, GCV.inflation.factor = 1, areal.data.avg = TRUE, incidence_matrix_time = NULL)
 {
 
   # Indexes in C++ starts from 0, in R from 1, opporGCV.inflation.factor transformation
@@ -418,6 +418,10 @@ CPP_smooth.FEM.PDE.sv.time<-function(locations, bary.locations, time_locations, 
   if(is.null(incidence_matrix))
   {
     incidence_matrix<-matrix(nrow = 0, ncol = 1)
+  }
+
+  if(is.null(incidence_matrix_time)){
+      incidence_matrix_time <- matrix(nrow = 0, ncol = 1)
   }
 
   if(is.null(IC))
@@ -465,6 +469,8 @@ CPP_smooth.FEM.PDE.sv.time<-function(locations, bary.locations, time_locations, 
   DOF_matrix <- as.matrix(DOF_matrix)
   storage.mode(DOF_matrix) <- "double"
   incidence_matrix <- as.matrix(incidence_matrix)
+  incidence_matrix_time <- as.matrix(incidence_matrix_time)
+  storage.mode(incidence_matrix_time) <- "integer"
   storage.mode(incidence_matrix) <- "integer"
   storage.mode(ndim) <- "integer"
   storage.mode(mydim) <- "integer"
@@ -1164,10 +1170,17 @@ CPP_smooth.GAM.FEM.PDE.sv.time<-function(locations, bary.locations, time_locatio
   storage.mode(BC$BC_indices) <- "integer"
   storage.mode(BC$BC_values) <-"double"
 
-  storage.mode(PDE_parameters$K) <- "double"
-  storage.mode(PDE_parameters$b) <- "double"
-  storage.mode(PDE_parameters$c) <- "double"
-  storage.mode(PDE_parameters$u) <- "double"
+  PDE_param_eval = NULL
+  points_eval = matrix(CPP_get_evaluations_points(mesh = FEMbasis$mesh, order = FEMbasis$order),ncol = 2)
+  PDE_param_eval$K = (PDE_parameters$K)(points_eval)
+  PDE_param_eval$b = (PDE_parameters$b)(points_eval)
+  PDE_param_eval$c = (PDE_parameters$c)(points_eval)
+  PDE_param_eval$u = (PDE_parameters$u)(points_eval)
+
+  storage.mode(PDE_param_eval$K) <- "double"
+  storage.mode(PDE_param_eval$b) <- "double"
+  storage.mode(PDE_param_eval$c) <- "double"
+  storage.mode(PDE_param_eval$u) <- "double"
 
   GCV <- as.integer(GCV)
   storage.mode(GCV) <-"integer"
@@ -1227,7 +1240,7 @@ CPP_smooth.GAM.FEM.PDE.sv.time<-function(locations, bary.locations, time_locatio
     storage.mode(lambdaSIC) <- "double"
     ## call the smoothing function with initial observations to estimates the IC
     ICsol <- .Call("gam_PDE_space_varying", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
-                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,PDE_parameters$u,
+                 mydim, ndim, lambdaSIC, PDE_param_eval$K, PDE_param_eval$b, PDE_param_eval$c,PDE_param_eval$u,
                  covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
                  T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
 
@@ -1239,7 +1252,7 @@ CPP_smooth.GAM.FEM.PDE.sv.time<-function(locations, bary.locations, time_locatio
       lambdaSIC <- as.matrix(lambdaSIC)
       storage.mode(lambdaSIC) <- "double"
       ICsol <- .Call("gam_PDE_space_varying", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
-                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,PDE_parameters$u,
+                 mydim, ndim, lambdaSIC, PDE_param_eval$K, PDE_param_eval$b, PDE_param_eval$c,PDE_param_eval$u,
                  covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
                  T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
 
@@ -1254,7 +1267,7 @@ CPP_smooth.GAM.FEM.PDE.sv.time<-function(locations, bary.locations, time_locatio
         lambdaSIC <- as.matrix(lambdaSIC)
         storage.mode(lambdaSIC) <- "double"
         ICsol <- .Call("gam_PDE_space_varying", locations, bary.locations, observationsIC, FEMbasis$mesh, FEMbasis$order,
-                 mydim, ndim, lambdaSIC, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c,PDE_parameters$u,
+                 mydim, ndim, lambdaSIC, PDE_param_eval$K, PDE_param_eval$b, PDE_param_eval$c,PDE_param_eval$u,
                  covariatesIC, incidence_matrix, BC$BC_indices, BC$BC_values,
                  T, as.integer(1), nrealizations, FAMILY, max.steps.FPIRLS, threshold.FPIRLS, GCV.inflation.factor, mu0, scale.param, T, DOF_matrix, search, areal.data.avg, PACKAGE = "fdaPDE")
 
@@ -1288,9 +1301,8 @@ CPP_smooth.GAM.FEM.PDE.sv.time<-function(locations, bary.locations, time_locatio
   storage.mode(BC$BC_indices) <- "integer"
   storage.mode(BC$BC_values) <-"double"
 
-
   bigsol <- .Call("gam_PDE_sv_time",locations, bary.locations, time_locations, observations, FEMbasis$mesh, time_mesh, FEMbasis$order,
-                  mydim, ndim, lambdaS, lambdaT, PDE_parameters$K, PDE_parameters$b, PDE_parameters$c, PDE_parameters$u, covariates, incidence_matrix, BC$BC_indices, BC$BC_values, FLAG_MASS, FLAG_PARABOLIC,
+                  mydim, ndim, lambdaS, lambdaT, PDE_param_eval$K, PDE_param_eval$b, PDE_param_eval$c, PDE_param_eval$u, covariates, incidence_matrix, BC$BC_indices, BC$BC_values, FLAG_MASS, FLAG_PARABOLIC,
                   IC, GCV, GCVMETHOD, nrealizations, DOF, DOF_matrix, search, GCV.inflation.factor, areal.data.avg, FAMILY, max.steps.FPIRLS, mu0, scale.param, 
                   threshold.FPIRLS, incidence_matrix_time, PACKAGE = "fdaPDE")
   return(c(bigsol, ICsol))

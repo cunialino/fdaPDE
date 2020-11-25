@@ -8,8 +8,16 @@ source("Utils.R")
 source("Settings.R")
 
 set <- settings(T)
-fams <- c("gamma", "binomial", "poisson", "exponential")
-set$NSIM = 50
+set$betas <- c(-.2, .3)
+fams <- c("gamma") #, "binomial", "poisson", "exponential")
+set$f <- function(x, y, t, family = "gamma"){
+  
+  a = 8
+  b = 10
+  return(-1/a*(fs.test(x, y, exclude = T)+b )*(t+1))
+  
+}
+set$NSIM = 1
 
 for(fam in fams){
   set$FAMILY = fam
@@ -26,7 +34,7 @@ for(fam in fams){
   for(sim in 1:set$NSIM){
     print(paste("Sim #", sim, sep = ""))
     sims <- NULL
-    sims <- runsim(set, c(T, T, T, T), sim == 1)
+    sims <- runsim(set, c(T, F, F, F), sim == 1)
     if(sim == 1){
       plot.results(sims, set, paste(set$dir_name, "/figures/", set$FAMILY, ".jpeg", sep = ""))
     }
