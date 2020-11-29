@@ -10,9 +10,15 @@
 plot.settings <- function(f, inv.link, data, set, filename){
   TrueMats = NULL
   ParamMats = NULL
-  loc_mat <- cbind(rep(set$xvec, each = length(set$yvec)), rep(set$yvec, length(set$xvec)))
-  for(j in seq(1, length(set$time_locations), length.out = 5)){
-    TrueMats[[j]] <- matrix(set$f(loc_mat[, 1], loc_mat[, 2], set$time_locations[j], set$FAMILY), nrow = length(set$xvec), ncol = length(set$yvec), byrow = T)
+  times <- sort(set$time_locations[sample(1:length(set$time_locations), size = 5)])
+  evalGrid <- expand.grid(times, set$xvec, set$yvec)
+  evalGrid <- evalGrid[order(evalGrid[, 1]), ]
+  names(evalGrid) <- c("t", "x", "y")
+  true <- set$f(evalGrid$x, evalGrid$y, evalGrid$t, set$FAMILY)
+  nx <- length(set$xvec)
+  ny <- length(set$yvec)
+  for(j in 1:5){
+    TrueMats[[j]]<- matrix(true[(1+(j-1)*nx*ny):(j*nx*ny)], nrow = nx, ncol = ny)
     ParamMats[[j]] <- set$inv.link(TrueMats[[j]], set$FAMILY)
   }
   paramPalette = hcl.colors(100, palette = "RdYlGn")
@@ -21,16 +27,15 @@ plot.settings <- function(f, inv.link, data, set, filename){
   zl = range(unlist(TrueMats), na.rm = T)
   zlP = range(unlist(ParamMats), na.rm = T)
   groups <-  quantile(data, probs = c(0.35, 0.7))
-  for(j in seq(1, length(set$time_locations), length.out = 5)){
-    levsP = round(seq(min(ParamMats[[j]], na.rm = T), max(ParamMats[[j]], na.rm = T), length.out = 10), digits = 2)
+  for(j in 1:5){
     image(set$xvec,set$yvec,TrueMats[[j]],col=heat.colors(100), xlab = "", ylab = "", axes = F, cex = textcex, zlim = zl)
-    contour(set$xvec,set$yvec,TrueMats[[j]],add=TRUE, labcex = labcex, lwd = lwd)
-    mtext(paste("t=", round(set$time_locations[j], digits = 2), sep = ""), side = 2, line = 0, las = 2, cex = titlecex)
+    contour(set$xvec,set$yvec,TrueMats[[j]],add=TRUE, labcex = labcex, lwd = lwd, zlim = zl)
+    mtext(paste("t=", round(times[j], digits = 2), sep = ""), side = 2, line = 0, las = 2, cex = titlecex)
     if(j == 1){
       mtext("True Field", font = 2, cex = titlecex)
     }
     image(set$xvec,set$yvec,ParamMats[[j]],col=paramPalette, xlab = "", ylab = "", axes = F, cex = textcex, zlim = zlP)
-    contour(set$xvec,set$yvec,ParamMats[[j]],add=TRUE, labcex = labcex, levels = levsP, lwd = lwd, zlim = zlP)
+    contour(set$xvec,set$yvec,ParamMats[[j]],add=TRUE, labcex = labcex, lwd = lwd, zlim = zlP)
     if(j == 1){
       mtext("True Mean", font = 2, cex = titlecex)
     }
@@ -56,14 +61,14 @@ plot.results<- function(sols, set, filename){
   if(! is.null(sols$TPS) | ! is.null(sols$SOAP))
     if(sum(set$FAMILY == c("gamma", "exponential")) >= 1)
       c = -1
-  evalGrid <- expand.grid(c(0, .25, .5, .75, 1), set$xvec, set$yvec)
+  evalGrid <- expand.grid(seq(0, 1, length.out = 5), set$xvec, set$yvec)
   evalGrid <- evalGrid[order(evalGrid[, 1]), ]
+  names(evalGrid) <- c("t", "x", "y")
   if(! is.null(set$betas)){
     
     evalGrid$cov1 <- rep(0, nrow(evalGrid))
     evalGrid$cov2 <- rep(0, nrow(evalGrid))
   }
-  names(evalGrid) <- c("t", "x", "y")
   if(! is.null(sols$GSRPDE))
     gsrpde <- eval.FEM.time(sols$GSRPDE$fit.FEM.time, space.time.locations = evalGrid[, 1:3], lambdaS = sols$GSRPDE$bestlambda[1], lambdaT = sols$GSRPDE$bestlambda[2])
   if(! is.null(sols$GSRtPDE))

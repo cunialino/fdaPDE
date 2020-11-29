@@ -8,8 +8,13 @@ source("Utils.R")
 source("Settings.R")
 
 set <- settings(T)
-fams <- c("gamma", "binomial", "poisson", "exponential")
-set$NSIM = 50
+fams <- c("poisson")#c("gamma", "binomial", "poisson", "exponential")
+set$time_locations <- set$time_locations*pi
+set$time_mesh <- set$time_mesh*pi
+set$space_time_locations[, 1] <- set$space_time_locations[, 1]*pi
+set$evalGrid$t <- set$evalGrid$t*pi
+# set$lambdaT <- 10^seq(-5, -3, 0.5)
+set$NSIM = 5
 
 for(fam in fams){
   set$FAMILY = fam

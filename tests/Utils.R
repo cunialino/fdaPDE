@@ -1,5 +1,6 @@
-runsim <- function(set, whichone = c(T, T, T, T), plotF = F){
+runsim <- function(set, whichone = c(T, T, T, T), sim){
   
+  plotF <- (sim == 1)
   desmat = NULL
   field = set$f(set$space_time_locations[, 2], set$space_time_locations[, 3], set$space_time_locations[, 1], set$FAMILY)
   if(! is.null(set$betas)){
@@ -7,12 +8,12 @@ runsim <- function(set, whichone = c(T, T, T, T), plotF = F){
     desmat[ , 1] <- rbeta(n = nrow(desmat), shape1 = 1.5, shape2 = 2) 
     desmat[ , 2] <- rbeta(n = nrow(desmat), shape1 = 3, shape2 = 2)
     field = field + desmat %*% set$betas
-    TPSform <- resp ~ cov1 + cov2 + te(x, y, t, k=c(30,10),d=c(2,1),bs=c("tp","cr"))
+    TPSform <- resp ~ cov1 + cov2 + te(x, y, t, k=c(30,5),d=c(2,1),bs=c("tp","cr"))
     SOAPform <- resp ~ cov1 + cov2 +te(x,y,t,bs=c("sf","cr"),k=c(25,4),d=c(2,1), xt=list(bnd=set$fsb))+
                       te(x,y,t,bs=c("sw","cr"),k=c(25,4),d=c(2,1), xt=list(bnd=set$fsb))
   }
   else{
-    TPSform <- resp ~ te(x, y, t, k=c(30,10),d=c(2,1),bs=c("tp","cr"))
+    TPSform <- resp ~ te(x, y, t, k=c(30,5),d=c(2,1),bs=c("tp","cr"))
     SOAPform <- resp ~ te(x,y,t,bs=c("sf","cr"),k=c(25,4),d=c(2,1), xt=list(bnd=set$fsb))+
                       te(x,y,t,bs=c("sw","cr"),k=c(25,4),d=c(2,1), xt=list(bnd=set$fsb))
   }
@@ -40,6 +41,10 @@ runsim <- function(set, whichone = c(T, T, T, T), plotF = F){
   }
   
   data = matrix(data, nrow = nrow(set$loc), ncol = length(set$time_locations))
+  if(sim == 1){
+    set$data <<- data
+  }
+  set$desmat[[1]] <<- desmat
   mode(data) <- "double"
   if(plotF)
     plot.settings(set$f, set$inv.link, data, set, paste(set$dir_name, "/figures/Settings", set$FAMILY, ".jpeg", sep = ""))
@@ -48,8 +53,8 @@ runsim <- function(set, whichone = c(T, T, T, T), plotF = F){
   
   if(whichone[1]){
     tt <- Sys.time()
-    reslist$GSRPDE <- smooth.FEM.time(time_mesh = set$time_mesh, time_locations = set$time_locations, locations = set$loc,  observations = data,
-                                      FEMbasis = set$FEMbasis, covariates = desmat, GCV=T, GCVmethod = "Stochastic", lambdaS  = set$lambdaS, lambdaT = set$lambdaT,
+    reslist$GSRPDE <- smooth.FEM.time(time_mesh = set$time_mesh, time_locations = set$time_locations, locations = set$loc,  observations = data, BC = set$BC, 
+                                      FEMbasis = set$FEMbasis, covariates = desmat, DOF.evaluation = "stochastic",lambda.selection.lossfunction = "GCV", lambdaS  = set$lambdaS, lambdaT = set$lambdaT,
                                       max.steps.FPIRLS=15,  family=set$FAMILY, mu0=NULL, scale.param=NULL, FLAG_PARABOLIC=T, threshold.FPIRLS = 10^-6, PDE_parameters = set$PDE_parameters)
     reslist$timeGSRPDE = Sys.time() - tt
     print(reslist$timeGSRPDE)
@@ -67,8 +72,8 @@ runsim <- function(set, whichone = c(T, T, T, T), plotF = F){
   if(whichone[2]){
     tt <- Sys.time()
     reslist$GSRtPDE <- smooth.FEM.time(time_mesh = set$time_mesh, time_locations = set$time_locations, locations = set$loc,  observations = data,
-                                       FEMbasis =set$FEMbasis, covariates = desmat, GCV=T, GCVmethod = "Stochastic", lambdaS  = set$lambdaSs, lambdaT = set$lambdaTs,
-                                       max.steps.FPIRLS=15,  family=set$FAMILY, mu0=NULL, scale.param=NULL, FLAG_PARABOLIC=F, threshold.FPIRLS = 10^-6, PDE_parameters = set$PDE_parameters)
+                                       FEMbasis =set$FEMbasis, covariates = desmat, DOF.evaluation = "stochastic", lambda.selection.lossfunction = "GCV", lambdaS  = set$lambdaSs, lambdaT = set$lambdaTs,
+                                       max.steps.FPIRLS=15,  family=set$FAMILY, mu0=NULL, scale.param=NULL, FLAG_PARABOLIC=F, threshold.FPIRLS = 10^-6, PDE_parameters = set$PDE_parameters, BC = set$BC)
     reslist$timeGSRtPDE = Sys.time() - tt
     print(reslist$timeGSRtPDE)
     bl <- reslist$GSRtPDE$bestlambda

@@ -139,17 +139,17 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::update_solution(UI
   // Here we have to solve a weighted regression problem. 
   regression_.recomputeWTW(); // at each iteration of FPIRLS W is updated, so WTW has to be recomputed as well.
   regression_.apply();
-  const SpMat& Psi = regression_.getPsi(); // get Psi matrix. It is used for the computation of fn_hat.
+  const SpMat * Psi = regression_.getPsi(); // get Psi matrix. It is used for the computation of fn_hat.
 
   // get the solutions from the regression object.
   _solution(lambdaS_index, lambdaT_index) = regression_.getSolution()(0,0);
   _dof(lambdaS_index, lambdaT_index) = regression_.getDOF()(0,0);
 
-  if(inputData_.getCovariates().rows()>0){ 
+  if(inputData_.getCovariates()->rows()>0){ 
     _beta_hat(lambdaS_index, lambdaT_index) = regression_.getBeta()(0,0);
   }
 
-  _fn_hat(lambdaS_index, lambdaT_index) = Psi *_solution(lambdaS_index,lambdaT_index).topRows(Psi.cols());
+  _fn_hat(lambdaS_index, lambdaT_index) = (*Psi) *_solution(lambdaS_index,lambdaT_index).topRows(Psi->cols());
 
 
 }
@@ -162,7 +162,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(
   VectorXr first_addendum; // G_ii( z_i - mu_i)
   VectorXr g_mu; // g( mu_i )
   
-  VectorXr z = inputData_.getInitialObservations();
+  const VectorXr * z = inputData_.getInitialObservations();
 
   first_addendum.resize(mu_.size());
   g_mu.resize(mu_.size());
@@ -170,7 +170,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_pseudoObs(
   //compute the vecotr first_addendum and g_mu
   for(auto i=0; i < mu_.size(); i++){
     g_mu(i) = link(mu_(i));
-    first_addendum(i) = G_(i)*(z(i)-mu_(i));
+    first_addendum(i) = G_(i)*((*z)(i)-mu_(i));
   }
 
   pseudoObservations_ = first_addendum + g_mu;
@@ -213,7 +213,7 @@ void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_mu(UInt& l
   VectorXr W_beta = VectorXr::Zero(mu_.size()); // initialize the vector w_ii*beta
 
   if(inputData_.getCovariates().rows()>0)
-    W_beta = inputData_.getCovariates()*_beta_hat(lambdaS_index, lambdaT_index);
+    W_beta = (*(inputData_.getCovariates()))*_beta_hat(lambdaS_index, lambdaT_index);
 
 
   
@@ -259,10 +259,10 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
 
   VectorXr Lf;
 
-  const VectorXr z = inputData_.getInitialObservations();
+  const VectorXr * z = inputData_.getInitialObservations();
 
   for(UInt i=0; i < mu_.size(); i++){
-    tmp = sqrt( var_function( mu_(i)) ) * (z(i) - mu_(i)) ;
+    tmp = sqrt( var_function( mu_(i)) ) * ((*z)(i) - mu_(i)) ;
     parametric_value += tmp*tmp;
   }
 
@@ -307,6 +307,31 @@ std::array<Real,2> FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::comp
 template <typename InputHandler, typename Integrator, UInt ORDER, UInt mydim, UInt ndim>
 void FPIRLS_Base<InputHandler,Integrator,ORDER, mydim, ndim>::compute_GCV(UInt& lambdaS_index, UInt&lambdaT_index){
 
+        if (optimizationData_.get_DOF_evaluation() != "not_required") //in this case surely we have already the dofs
+        { // is DOF_matrix to be computed?
+        regression_.computeDegreesOfFreedom(0, 0, (*optimizationData_.get_LambdaS_vector())[lambdaS_index], (*optimizationData_.get_LambdaS_vector())[lambdaS_index]);
+        _dof(lambda_index,0) = regression_.getDOF()(0,0);
+        }
+        else _dof(lambdaS_index,lambdaT_index) = regression_.getDOF()(lambdaS_index,lambdaT_index);
+
+        const VectorXr * y = inputData_.getInitialObservations();
+        Real GCV_value = 0;
+
+        for(UInt j=0; j < y->size();j++)
+        GCV_value += dev_function(mu_[j], (*y)[j]); //norm computation
+
+        GCV_value *= y->size();
+
+        GCV_value /= (y->size()-optimizationData_.get_tuning()*_dof(lambdaS_index,lambdaT_index))*(y->size()-optimizationData_.get_tuning()*_dof(lambdaS_index,lambdaT_index));
+
+        _GCV[lambda_index] = GCV_value;
+
+        //best lambda
+        if(GCV_value < optimizationData_.get_best_value())
+        {
+        optimizationData_.set_best_lambda_S(lambda_index);
+        optimizationData_.set_best_value(GCV_value);
+        }
   //GCV COMPUTATION
   Real GCV_value = 0;
     if(regression_.getDecInfo() != 0){

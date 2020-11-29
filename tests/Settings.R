@@ -8,16 +8,37 @@ f <- function(x, y, t, FAMILY){
     return((-2.5*sin(2*pi*x)*cos(2*pi*y) + 4/5*sin(pi*x*t))*(t+1))
 }
 
-fC <- function(x, y, t, FAMILY){
-  if(sum(FAMILY == c("gamma", "poisson", "exponential"))>=1){
-    a = 8
+fC <- function(x, y, t, FAMILY, exclude = T){
+
+  # if(sum(FAMILY == c("gamma", "poisson", "exponential"))>=1){
+  #   a = 8
+  #   b = 10  # 10
+  # }
+  # if(sum(FAMILY == c("binomial", "poisson", "gaussian")) >= 1){
+  #   a = -3
+  #   b = 0
+  # }
+  # return(-1/a*(fs.test(x, y, exclude = exclude)+ b  - sin(pi*t))*(t+1))
+  a <- -1
+  b <- 0
+  if(sum(FAMILY == c("gamma", "exponential"))>=1){
+    a <- 8
     b = 10  # 10
   }
-  if(sum(FAMILY == c("binomial", "poisson", "gaussian")) >= 1){
-    a = -3
-    b = 0
+  K <- (y/0.1*as.double((abs(y)<=0.1 & x>-0.5))+as.double((abs(y)>0.1 | x<=-0.5)))^2
+  res=numeric(length =length(x))
+  for(i in 1:length(x))
+  {
+    if(x[i]>=0 && y[i]>0)
+      res[i]=cos(t[i])*(0.25*pi+x[i])+(y[i]-0.5)^2
+    if(x[i]>=0 && y[i]<=0)
+      res[i]=cos(2*t[i])*(-0.25*pi-x[i])+(-y[i]-0.5)^2
+    if(x[i]<0 && y[i]>0)
+      res[i]=cos(t[i])*(-atan(y[i]/x[i])*0.5)+(sqrt(x[i]^2+y[i]^2)-0.5)^2*K[i]
+    if(x[i]<0 && y[i]<=0)
+      res[i]=cos(2*t[i])*(-atan(y[i]/x[i])*0.5)+(sqrt(x[i]^2+y[i]^2)-0.5)^2*K[i]
   }
-  return(-1/a*(fs.test(x, y, exclude = T)+b - sin(pi*t))*(t+1))
+  return(-1/a*(res+0*fs.test(x, y, exclude = T) + b))
 }
 inv.link <- function(mu, FAMILY){
   if(FAMILY == "gamma"){
@@ -39,11 +60,11 @@ settings <- function(flagMeshC = T){
   
   Settings = NULL
   
-  Settings$N = 16
-  Settings$M = 6
+  Settings$N = 8 
+  Settings$M = 11
   
   Settings$m = Settings$M
-  Settings$n = 400
+  Settings$n = 405
   
   Settings$PDE_parameters = NULL
   Settings$scale = .05
@@ -54,12 +75,12 @@ settings <- function(flagMeshC = T){
     Settings$f = f
   if(flagMeshC){
     data("horseshoe2D")
-    Settings$xvec = seq(-1, 4, .02)
+    Settings$xvec = seq(-1, 3.5, .02)
     Settings$yvec = seq(-1, 1, .02)
   }
   else{
-    Settings$xvec = seq(0, 1, by = 0.03)
-    Settings$yvec = seq(0, 1, by = 0.03)
+    Settings$xvec = seq(0, 1, by = 0.02)
+    Settings$yvec = seq(0, 1, by = 0.02)
   }
   
   #Mesh settings
@@ -81,6 +102,8 @@ settings <- function(flagMeshC = T){
     boundary_nodes = tmp[which(tmp[, 1] == 0 | tmp[, 1] == 1 | tmp[, 2] == 0 | tmp[, 2] == 1), ]
     inner_nodes =  tmp[-which(tmp[, 1] == 0 | tmp[, 1] == 1 | tmp[, 2] == 0 | tmp[, 2] == 1), ]
     Settings$mesh = create.mesh.2D(nodes = rbind(boundary_nodes, inner_nodes), order = Settings$basis_order)
+    dimeval = 10000
+    Settings$evalGrid <- data.frame(t = runif(n = dimeval, 0, 1),x= runif(n=dimeval, 0, 1),y= runif(n = dimeval, 0, 1))
   }
   
   Settings$time_mesh = seq(0, 1, length.out = Settings$M)
@@ -100,11 +123,11 @@ settings <- function(flagMeshC = T){
   }
   Settings$space_time_locations = cbind(rep(Settings$time_locations, each=nrow(Settings$loc)), rep(Settings$loc[,1],length(Settings$time_locations)), rep(Settings$loc[,2],length(Settings$time_locations)))
   Settings$FEMbasis = create.FEM.basis(Settings$mesh)
-  Settings$lambdaS = 10^seq(-3, 2, 0.5)
-  Settings$lambdaT = 10^seq(-3, 1, 0.5)
+  Settings$lambdaS = 10^seq(-5, -3, 0.5)
+  Settings$lambdaT = 10^seq(-4, -1, 0.5)
   
-  Settings$lambdaSs = 10^seq(-3, 2, .5)
-  Settings$lambdaTs = 10^seq(-3, -1, 0.5)
+  Settings$lambdaSs = 10^seq(-5, -3, .5)
+  Settings$lambdaTs = 10^seq(-4, -1, 0.5)
   if(flagMeshC){
     Settings$dir_name = paste("P", 2*Settings$basis_order, "_", "M", Settings$M, "_", "n", Settings$n, "_", "m", Settings$m, sep = "")
     if(! dir.exists(Settings$dir_name)){
