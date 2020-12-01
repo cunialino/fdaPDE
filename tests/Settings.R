@@ -25,6 +25,8 @@ fC <- function(x, y, t, FAMILY, exclude = T){
     a <- 8
     b = 10  # 10
   }
+  if(FAMILY == "poisson")
+    a <- -2
   K <- (y/0.1*as.double((abs(y)<=0.1 & x>-0.5))+as.double((abs(y)>0.1 | x<=-0.5)))^2
   res=numeric(length =length(x))
   for(i in 1:length(x))
@@ -60,11 +62,11 @@ settings <- function(flagMeshC = T){
   
   Settings = NULL
   
-  Settings$N = 8 
-  Settings$M = 11
+  Settings$N = 16
+  Settings$M = 6
   
   Settings$m = Settings$M
-  Settings$n = 405
+  Settings$n = 400
   
   Settings$PDE_parameters = NULL
   Settings$scale = .05
@@ -75,12 +77,12 @@ settings <- function(flagMeshC = T){
     Settings$f = f
   if(flagMeshC){
     data("horseshoe2D")
-    Settings$xvec = seq(-1, 3.5, .02)
-    Settings$yvec = seq(-1, 1, .02)
+    Settings$xvec = seq(-1, 3.5, .01)
+    Settings$yvec = seq(-1, 1, .01)
   }
   else{
-    Settings$xvec = seq(0, 1, by = 0.02)
-    Settings$yvec = seq(0, 1, by = 0.02)
+    Settings$xvec = seq(0, 1, by = 0.01)
+    Settings$yvec = seq(0, 1, by = 0.01)
   }
   
   #Mesh settings
@@ -95,7 +97,10 @@ settings <- function(flagMeshC = T){
     locations = horseshoe2D$locations
     Settings$mesh = create.mesh.2D(nodes = rbind(boundary_nodes, locations), segments = boundary_segments, order = Settings$basis_order)
     dimeval = 10000
-    Settings$evalGrid <- data.frame(t = runif(n = dimeval, 0, 1),x= runif(n=dimeval, -1, 4),y= runif(n = dimeval, -1, 1))
+    xeval <- seq(-1, 3.5, 0.05)
+    yeval <- seq(-1, 1, 0.05)
+    xyeval <- expand.grid(xeval, yeval)
+    Settings$evalGrid <- data.frame(t = rep(seq(0, 1, length.out = 20), each =nrow(xyeval)) ,x= rep(xyeval[, 1], 20),y= rep(xyeval[, 2], 20))
   }
   else{
     tmp <- cbind(rep(seq(0, 1, length.out = Settings$N), Settings$N), rep(seq(0, 1, length.out = Settings$N), each = Settings$N))
@@ -111,10 +116,10 @@ settings <- function(flagMeshC = T){
   #Setting up the datas 
   Settings$time_locations =seq(0, 1, length.out = Settings$m) #c(0, sort(runif(Settings$m, 0.0001, 1))) #
   if(flagMeshC){
-    loc = cbind(runif(2*Settings$n, min = -1, max = 4), runif(2*Settings$n, min = -1, max = 1))
-    ww <- apply(loc, 1, is.p.in.horseshoe) #! is.na(fs.test(loc[,1], loc[ ,2], exclude = T))
-    Settings$loc <- loc[ww, ]
-    if(nrow(loc) > Settings$n){
+    Settings$loc = cbind(runif(2*Settings$n, min = -1, max = 4), runif(2*Settings$n, min = -1, max = 1))
+    ww <- apply(Settings$loc, 1, is.p.in.horseshoe) #! is.na(fs.test(loc[,1], loc[ ,2], exclude = T))
+    Settings$loc <- Settings$loc[ww, ]
+    if(nrow(Settings$loc) > Settings$n){
       Settings$loc = Settings$loc[1:Settings$n, ]
     }
   }
@@ -123,11 +128,12 @@ settings <- function(flagMeshC = T){
   }
   Settings$space_time_locations = cbind(rep(Settings$time_locations, each=nrow(Settings$loc)), rep(Settings$loc[,1],length(Settings$time_locations)), rep(Settings$loc[,2],length(Settings$time_locations)))
   Settings$FEMbasis = create.FEM.basis(Settings$mesh)
-  Settings$lambdaS = 10^seq(-5, -3, 0.5)
-  Settings$lambdaT = 10^seq(-4, -1, 0.5)
+  Settings$lambdaS = 10^seq(-2, 1, 0.5)
+  Settings$lambdaT = 10^seq(-2, 1, 0.5)
   
-  Settings$lambdaSs = 10^seq(-5, -3, .5)
-  Settings$lambdaTs = 10^seq(-4, -1, 0.5)
+  Settings$lambdaSs = 10^seq(-2, 1, .5)
+  Settings$lambdaTs = 10^seq(-2, 1, 0.5)
+  Settings$n <- nrow(Settings$loc)
   if(flagMeshC){
     Settings$dir_name = paste("P", 2*Settings$basis_order, "_", "M", Settings$M, "_", "n", Settings$n, "_", "m", Settings$m, sep = "")
     if(! dir.exists(Settings$dir_name)){

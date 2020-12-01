@@ -6,7 +6,7 @@ runsim <- function(set, whichone = c(T, T, T, T), sim){
   if(! is.null(set$betas)){
     desmat <- matrix(0, nrow = nrow(set$space_time_locations), ncol = 2)
     desmat[ , 1] <- rbeta(n = nrow(desmat), shape1 = 1.5, shape2 = 2) 
-    desmat[ , 2] <- rbeta(n = nrow(desmat), shape1 = 3, shape2 = 2)
+    desmat[ , 2] <- rbeta(n = nrow(desmat), shape1 = 3, shape2 = 2)+1
     field = field + desmat %*% set$betas
     TPSform <- resp ~ cov1 + cov2 + te(x, y, t, k=c(30,5),d=c(2,1),bs=c("tp","cr"))
     SOAPform <- resp ~ cov1 + cov2 +te(x,y,t,bs=c("sf","cr"),k=c(25,4),d=c(2,1), xt=list(bnd=set$fsb))+
@@ -40,11 +40,11 @@ runsim <- function(set, whichone = c(T, T, T, T), sim){
     mgcvDat$cov2 <- desmat[, 2]
   }
   
-  data = matrix(data, nrow = nrow(set$loc), ncol = length(set$time_locations))
+  data = matrix(data, nrow = set$n, ncol = set$m)
   if(sim == 1){
     set$data <<- data
   }
-  set$desmat[[1]] <<- desmat
+  set$desmat[[sim]] <<- desmat
   mode(data) <- "double"
   if(plotF)
     plot.settings(set$f, set$inv.link, data, set, paste(set$dir_name, "/figures/Settings", set$FAMILY, ".jpeg", sep = ""))
@@ -127,9 +127,10 @@ eval.rmse <- function(sols, set, covariates = F){
     
   true <- set$f(set$evalGrid$x, set$evalGrid$y, set$evalGrid$t, set$FAMILY)
   
+  tt <- Sys.time()
   if(! is.null(sols$GSRPDE))
     gsrpde <- eval.FEM.time(sols$GSRPDE$fit.FEM.time, space.time.locations = set$evalGrid[, 1:3], lambdaS = sols$GSRPDE$bestlambda[1], lambdaT = sols$GSRPDE$bestlambda[2])
-  
+  print(Sys.time()-tt)
   if(! is.null(sols$GSRtPDE))
     gsrtpde <- eval.FEM.time(sols$GSRtPDE$fit.FEM.time, space.time.locations = set$evalGrid[,1:3], lambdaS = sols$GSRtPDE$bestlambda[1], lambdaT = sols$GSRtPDE$bestlambda[2])
   

@@ -145,22 +145,23 @@ ndata = length(sol_exact)
 # Create covariates
 set.seed(509875)
 cov1 = rnorm(ndata, mean = 1, sd = 2)
+cov2 = rnorm(ndata, mean = 3, sd = 2)
 
 # Add error to simulate data
 set.seed(7893475)
-data = sol_exact + 2*cov1 
-data = data + rnorm(length(sol_exact), mean = 0, sd =  0.05*diff(range(sol_exact)))
+data = sol_exact + 2*cov1 + cov2
+data = data + rnorm(length(sol_exact), mean = 0, sd =  0.1)#*diff(range(sol_exact)))
 observations = matrix(data,nrow(locations),NumTimeInstants)
 
 # Set smoothing parameter
-lambdaS = 10^-2
-lambdaT = 10^-2
+lambdaS = 10^2
+lambdaT = 10^0
 
 #### Test 2.1: Without GCV
 output_CPP<-smooth.FEM.time(locations = locations, time_mesh = TimePoints, 
                             observations=observations, 
-                            covariates = cov1,
-                            FEMbasis=FEMbasis, lambdaS=lambdaS, lambdaT=lambdaT)
+                            covariates = c(cov1, cov2),
+                            FEMbasis=FEMbasis, lambdaS=lambdaS, lambdaT=lambdaT, FLAG_PARABOLIC = T)
 
 plot(output_CPP$fit.FEM)
 output_CPP$beta

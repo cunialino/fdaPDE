@@ -10,7 +10,7 @@
 plot.settings <- function(f, inv.link, data, set, filename){
   TrueMats = NULL
   ParamMats = NULL
-  times <- sort(set$time_locations[sample(1:length(set$time_locations), size = 5)])
+  times <- sort(set$time_locations[seq(1, length(set$time_locations), length.out = 5)])
   evalGrid <- expand.grid(times, set$xvec, set$yvec)
   evalGrid <- evalGrid[order(evalGrid[, 1]), ]
   names(evalGrid) <- c("t", "x", "y")
@@ -40,8 +40,8 @@ plot.settings <- function(f, inv.link, data, set, filename){
       mtext("True Mean", font = 2, cex = titlecex)
     }
     plot(set$loc[which(data[, j] <= groups[1]), ], pch = 19, col = paramPalette[1], cex = pointcex, axes = F, xlim = range(set$xvec), ylim = range(set$yvec))
-    points(set$loc[which(data[, j] > groups[1] & data[, j] < groups[2]), ], pch = 19, col = paramPalette[50], cex = pointcex)
-    points(set$loc[which(data[, j] >= groups[2]), ], pch = 19, col = paramPalette[100], cex = pointcex)
+    points(set$loc[which(data[, j] > groups[1] & data[, j] <= groups[2]), ], pch = 19, col = paramPalette[50], cex = pointcex)
+    points(set$loc[which(data[, j] > groups[2]), ], pch = 19, col = paramPalette[100], cex = pointcex)
     box()
     if(j == 1){
       mtext("Data", font = 2, cex = titlecex)
@@ -61,7 +61,9 @@ plot.results<- function(sols, set, filename){
   if(! is.null(sols$TPS) | ! is.null(sols$SOAP))
     if(sum(set$FAMILY == c("gamma", "exponential")) >= 1)
       c = -1
-  evalGrid <- expand.grid(seq(0, 1, length.out = 5), set$xvec, set$yvec)
+  times <- set$time_mesh[seq(1, length(set$time_mesh), length.out = 5)]
+  print(times)
+  evalGrid <- expand.grid(times, set$xvec, set$yvec)
   evalGrid <- evalGrid[order(evalGrid[, 1]), ]
   names(evalGrid) <- c("t", "x", "y")
   if(! is.null(set$betas)){

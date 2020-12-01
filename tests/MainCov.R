@@ -9,14 +9,16 @@ source("Settings.R")
 
 set <- settings(T)
 set$betas <- c(-.2, .3)
-set$scale = 0.05
-fams <- c("binomial", "poisson", "exponential")
+set$scale = 0.05 
+fams <- c("poisson") #, "poisson")#, "poisson")
 set$time_locations <- set$time_locations*pi
 set$time_mesh <- set$time_mesh*pi
 set$space_time_locations[, 1] <- set$space_time_locations[, 1]*pi
 set$evalGrid$t <- set$evalGrid$t*pi
-set$lambdaT <- 10^seq(-5, -3, 0.5)
-set$lambdaTs <- set$lambdaT
+set$mesh <- refine.mesh.2D(set$mesh, maximum_area = 0.025, minimum_angle = 30)
+# set$lambdaT <- 10^0 #seq(-5, -3, 0.5)
+# set$lambdaS <- 10^seq(-3, 0, .3)
+# set$lambdaTs <- set$lambdaT
 set$NSIM = 1
 # BC = NULL
 # BC$BC_indices = set$mesh$nodesmarkers[1]
@@ -39,7 +41,7 @@ for(fam in fams){
   for(sim in 1:set$NSIM){
     print(paste("Sim #", sim, sep = ""))
     sims <- NULL
-    sims <- runsim(set, c(T, T, T, T), sim)
+    sims <- runsim(set, c(T, F, F, F), sim)
     if(sim == 1){
       plot.results(sims, set, paste(set$dir_name, "/figures/", set$FAMILY, ".jpeg", sep = ""))
     }
