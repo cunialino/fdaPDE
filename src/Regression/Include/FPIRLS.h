@@ -2,10 +2,8 @@
 #define __FPIRLS_H__
 
 #include <cmath>
-#include <iostream>
 #include <math.h>
 #include <array>
-#include <vector>
 
 #include "Mixed_FE_Regression.h"
 #include "../../FE_Assemblers_Solvers/Include/Evaluator.h"
@@ -19,15 +17,16 @@ class FPIRLS_Base {
   protected:
 
    const MeshHandler<ORDER, mydim, ndim> & mesh_;
+   const std::vector<Real> mesh_time_;
    InputHandler & inputData_; //!< It contains the data of the problem (RegressionDataGAM)
    OptimizationData & optimizationData_; //!< It contains the data of the optimization problem
    MixedFERegression<InputHandler>  regression_;
 
 
-   std::vector<VectorXr> mu_; //!< Mean vector
-   std::vector<VectorXr> pseudoObservations_; //! Pseudodata observations
-   std::vector<VectorXr> G_; //!< diag(link_deriv(mu)) it is a vector since it would be more memory consuming to declere it as a matrix
-   std::vector<VectorXr> WeightsMatrix_; //!< (G^-2 * Var_function(mu)^-1) it is a vector because it is a diagonal matrix
+   VectorXr mu_; //!< Mean vector
+   VectorXr pseudoObservations_; //! Pseudodata observations
+   VectorXr G_; //!< diag(link_deriv(mu)) it is a vector since it would be more memory consuming to declere it as a matrix
+   VectorXr WeightsMatrix_; //!< (G^-2 * Var_function(mu)^-1) it is a vector because it is a diagonal matrix
 
    // the value of the functional is saved deparated (parametric and non-parametric part)
    std::array<Real,2> current_J_values;
@@ -41,8 +40,8 @@ class FPIRLS_Base {
    MatrixXv _solution; //!< Stores the system solution.
    MatrixXr _dof; //!< A matrix of VectorXr storing the computed dofs.
 
-   std::vector<Real> _GCV; //!< A vector storing GCV values.
-   std::vector<Real> _J_minima;//!< Stores the minimum value of the functional.
+   MatrixXr _GCV; //!< A vector storing GCV values.
+   MatrixXr _J_minima;//!< Stores the minimum value of the functional.
 
    // Evaluation of the solution in the locations and beta estimates
    MatrixXv _beta_hat;//!< Betas estimated if the model has covariates.
@@ -59,17 +58,17 @@ class FPIRLS_Base {
    //! A method that assembles the weights matrix ( a diagonal matrix, hence it is stored as vector).
    void compute_Weights();
    //! A method that updates the solution. It perform step (2) of F-PIRLS.
-   void update_solution(UInt& lambda_index, UInt& lambdaT_index);
+   void update_solution(UInt& lambdaS_index, UInt& lambdaT_index);
    //! A method that updates mu vector. It perform step (3) of F-PIRLS.
-   void compute_mu(UInt& lambda_index, UInt& lambdaT_index);
+   void compute_mu(UInt& lambdaS_index, UInt& lambdaT_index);
    //! A method that stops PIRLS based on difference between functionals J_k J_k+1 or n_iterations > max_num_iterations .
    bool stopping_criterion(UInt& lambdaS_index, UInt& lambdaT_index);
    //! A method that computes and return the current value of the functional J. It is divided in parametric and non parametric part.
-   std::array<Real,2> compute_J(UInt& lambda_index, UInt& lambdaT_index);
+   std::array<Real,2> compute_J(UInt& lambdaS_index, UInt& lambdaT_index);
    //! A method that computes the GCV value for a given lambda.
-   void compute_GCV(UInt& lambda_index, UInt& lambdaT_index);
+   void compute_GCV(UInt& lambdaS_index, UInt& lambdaT_index);
    //! A method that computes the estimates of the variance. It depends on the scale flags: only the Gamma and InvGaussian distributions have the scale parameter.
-   void compute_variance_est(UInt & lambda_index, UInt& lambdaT_index);
+   void compute_variance_est(UInt& lambdaS_index, UInt& lambdaT_index);
 
    // link and other functions. Definited as pure virtual methods, the implementaton depend on the choosen distributions
 
@@ -88,6 +87,7 @@ class FPIRLS_Base {
   public:
 
     FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param); // Constructor
+    FPIRLS_Base(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> mesh_time, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param); // Constructor
 
     //! A virutal destructor
    virtual ~FPIRLS_Base(){};
@@ -108,7 +108,7 @@ class FPIRLS_Base {
    //! An inline member that returns the variance estimates.
    inline MatrixXr const getVarianceEst() const{return  _variance_estimates;}
    //! An inline member that returns a the computed (or not) GCV estimates. If GCV is not computed, -1 is returned
-   inline std::vector<Real> const & getGCV() const{return _GCV;}
+   inline MatrixXr const & getGCV() const{return _GCV;}
 
 
    //! A method returning the computed barycenters of the locationss
@@ -131,6 +131,8 @@ class FPIRLS: public FPIRLS_Base< InputHandler, ORDER,  mydim,  ndim>{
 
     FPIRLS(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
       FPIRLS_Base<InputHandler, ORDER, mydim, ndim>(mesh, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
+    FPIRLS(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> & mesh_time, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS_Base<InputHandler, ORDER, mydim, ndim>(mesh, mesh_time, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
      //! A virtual destructor
    virtual ~FPIRLS(){};
 
@@ -145,6 +147,8 @@ class FPIRLS< GAMDataEllipticSpaceVarying, ORDER,  mydim,  ndim>: public FPIRLS_
 
     FPIRLS(const MeshHandler<ORDER,mydim,ndim>& mesh, GAMDataEllipticSpaceVarying& inputData, OptimizationData & optimizationData,  VectorXr mu0, bool scale_parameter_flag, Real scale_param):
       FPIRLS_Base<GAMDataEllipticSpaceVarying, ORDER, mydim, ndim>(mesh, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
+    FPIRLS(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> & mesh_time, GAMDataEllipticSpaceVarying& inputData, OptimizationData & optimizationData,  VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS_Base<GAMDataEllipticSpaceVarying, ORDER, mydim, ndim>(mesh, mesh_time, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
 
     virtual ~FPIRLS(){};
 
@@ -174,6 +178,8 @@ class FPIRLS_Bernoulli : public FPIRLS <InputHandler, ORDER, mydim, ndim> {
 
     FPIRLS_Bernoulli(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0):
       FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, inputData, optimizationData, mu0, false, 1){};
+    FPIRLS_Bernoulli(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> & mesh_time, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0):
+      FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, mesh_time, inputData, optimizationData, mu0, false, 1){};
 };
 
 
@@ -197,6 +203,8 @@ class FPIRLS_Poisson : public FPIRLS <InputHandler, ORDER, mydim, ndim> {
 
     FPIRLS_Poisson(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0):
       FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, inputData, optimizationData, mu0, false, 1){};
+    FPIRLS_Poisson(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> & mesh_time, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0):
+      FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, mesh_time, inputData, optimizationData, mu0, false, 1){};
 
 };
 
@@ -221,6 +229,8 @@ class FPIRLS_Exponential : public FPIRLS <InputHandler, ORDER, mydim, ndim>
 
     FPIRLS_Exponential(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0):
       FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, inputData, optimizationData, mu0, false, 1){};
+    FPIRLS_Exponential(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> & mesh_time, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0):
+      FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, mesh_time, inputData, optimizationData, mu0, false, 1){};
 
 };
 
@@ -246,6 +256,8 @@ class FPIRLS_Gamma : public FPIRLS <InputHandler, ORDER, mydim, ndim> {
 
     FPIRLS_Gamma(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
       FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
+    FPIRLS_Gamma(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> & mesh_time, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, mesh_time, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
 
 };
 

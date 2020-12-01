@@ -307,6 +307,22 @@ class  RegressionDataGAM : public RegressionHandler
 			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues,
 			SEXP RincidenceMatrix, SEXP RarealDataAvg, SEXP Rsearch, SEXP Rmax_num_iteration, SEXP Rthreshold);
 
+		//Laplace time
+		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder,
+			SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
+			SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP Rsearch, SEXP Rmax_num_iteration, SEXP Rthreshold, SEXP nochocie);
+// the last one is just because otherwise PDE and Laplace_time have the same number of params
+
+		// PDE time
+		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder,
+			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
+			SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP Rsearch, SEXP Rmax_num_iteration, SEXP Rthreshold);
+
+		// PDE SpaceVarying time
+		explicit RegressionDataGAM(SEXP Rlocations, SEXP RbaryLocations, SEXP Rtime_locations, SEXP Robservations, SEXP Rorder,
+			SEXP RK, SEXP Rbeta, SEXP Rc, SEXP Ru, SEXP Rcovariates, SEXP RBCIndices, SEXP RBCValues, SEXP RincidenceMatrix, SEXP RarealDataAvg,
+			SEXP Rflag_mass, SEXP Rflag_parabolic, SEXP Ric, SEXP Rsearch, SEXP Rmax_num_iteration, SEXP Rthreshold);
+
 		//! A method returning the maximum iteration for the iterative method
 		inline UInt get_maxiter() const {return max_num_iterations_;}
 		//! A method returning the treshold

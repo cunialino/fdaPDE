@@ -503,11 +503,18 @@ void MixedFERegressionBase<InputHandler>::getRightHandData(VectorXr& rightHandDa
 		}
 		else if(regressionData_.isLocationsByNodes() && regressionData_.isSpaceTime() && regressionData_.getFlagParabolic())
 		{ // Regressionbynodes + parabolic --> Psi^t*z [simplified Psi]
+			VectorXr tmp = LeftMultiplybyQ(*obsp);
+			for(UInt i=0; i<nlocations; ++i)
+			{ // Simplified multiplication by Psi^t
+				auto index_i = (*(regressionData_.getObservationsIndices()))[i];
+				rightHandData(index_i) = tmp(i);
+			}
+            /* now also gam is space time
 			for(UInt i=0; i<regressionData_.getObservationsIndices()->size(); ++i)
 			{ // Simplified multiplication by Psi^t
 				auto index_i = (*(regressionData_.getObservationsIndices()))[i];
 				rightHandData(index_i) = (*obsp)[index_i];
-			}
+			}*/
 		}
 		else if(regressionData_.getNumberOfRegions() == 0)
 		{ // Generic pointwise pata, no optimization allowed --> Psi^t*z [or Psi^t*P*z in GAM]
@@ -638,15 +645,19 @@ template<typename Derived>
 MatrixXr MixedFERegressionBase<InputHandler>::system_solve(const Eigen::MatrixBase<Derived> & b)
 {
 	// Resolution of the system matrixNoCov * x1 = b
-	MatrixXr x1 = matrixNoCovdec_.solve(b);
-	if(regressionData_.getCovariates()->rows() != 0)
-	{
-		// Resolution of G * x2 = V * x1
-		MatrixXr x2 = Gdec_.solve(V_*x1);
-		// Resolution of the system matrixNoCov * x3 = U * x2
-		x1 -= matrixNoCovdec_.solve(U_*x2);
-	}
-	return x1;
+    if(matrixNoCovdec_.info() == 0){
+        MatrixXr x1 = matrixNoCovdec_.solve(b);
+        if(regressionData_.getCovariates()->rows() != 0)
+        {
+            // Resolution of G * x2 = V * x1
+            MatrixXr x2 = Gdec_.solve(V_*x1);
+            // Resolution of the system matrixNoCov * x3 = U * x2
+            x1 -= matrixNoCovdec_.solve(U_*x2);
+        }
+        return x1;
+    }
+    std::cerr << "dec err" << std::endl;
+    return MatrixXr(b.rows(), b.cols());
 }
 
 //----------------------------------------------------------------------------//
@@ -906,9 +917,10 @@ void MixedFERegressionBase<InputHandler>::preapply(EOExpr<A> oper, const Forcing
 		Assembler::forcingTerm(mesh_, fe, u, rhs_ft_correction_);
 	}
 
-	if(regressionData_.isSpaceTime())
+	if(regressionData_.isSpaceTime() && not isSPComputed)
 	{
 		this->buildSpaceTimeMatrices();
+        isSPComputed = true;
 	}
 
 	// Set final transpose of Psi matrix
@@ -1066,7 +1078,6 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			// system solution
 			_solution(s,t) = this->template system_solve(this->_rightHandSide);
 
-
 			if(optimizationData_.get_loss_function()=="GCV" && (!isGAMData&&regressionData_.isSpaceTime()))
 			{
 				if (optimizationData_.get_DOF_evaluation()!="not_required")
@@ -1077,6 +1088,7 @@ MatrixXv  MixedFERegressionBase<InputHandler>::apply(void)
 			}
 			else
 			{
+                
 				_dof(s,t) = -1;
 				_GCV(s,t) = -1;
 			}
@@ -1255,6 +1267,8 @@ class MixedFERegression<GAMDataLaplace>: public MixedFERegressionBase<Regression
 	public:
 		MixedFERegression(const RegressionData & regressionData, OptimizationData & optimizationData, UInt nnodes_):
 			MixedFERegressionBase<RegressionData>(regressionData, optimizationData, nnodes_) {};
+		MixedFERegression(const std::vector<Real> & mesh_time, const RegressionData & regressionData, OptimizationData & optimizationData, UInt nnodes_):
+			MixedFERegressionBase<RegressionData>(mesh_time, regressionData, optimizationData, nnodes_, MixedSplineRegression<RegressionData>::SPLINE_DEGREE) {};
 
 		template<UInt ORDER, UInt mydim, UInt ndim>
 		void preapply(const MeshHandler<ORDER,mydim,ndim> & mesh)
@@ -1270,6 +1284,8 @@ class MixedFERegression<GAMDataElliptic>: public MixedFERegressionBase<Regressio
 	public:
 		MixedFERegression(const RegressionDataElliptic & regressionData, OptimizationData & optimizationData, UInt nnodes_):
 			MixedFERegressionBase<RegressionDataElliptic>(regressionData, optimizationData, nnodes_) {};
+		MixedFERegression(const std::vector<Real> & mesh_time, const RegressionDataElliptic & regressionData, OptimizationData & optimizationData, UInt nnodes_):
+			MixedFERegressionBase<RegressionDataElliptic>(mesh_time, regressionData, optimizationData, nnodes_, MixedSplineRegression<RegressionDataElliptic>::SPLINE_DEGREE) {};
 
 		template< UInt ORDER, UInt mydim, UInt ndim>
 		void preapply(const MeshHandler<ORDER,mydim,ndim> & mesh)
@@ -1293,6 +1309,8 @@ class MixedFERegression<GAMDataEllipticSpaceVarying>: public MixedFERegressionBa
 	public:
 		MixedFERegression(const RegressionDataEllipticSpaceVarying & regressionData, OptimizationData & optimizationData, UInt nnodes_):
 			MixedFERegressionBase<RegressionDataEllipticSpaceVarying>( regressionData, optimizationData, nnodes_) {};
+		MixedFERegression(const std::vector<Real> & mesh_time, const RegressionDataEllipticSpaceVarying & regressionData, OptimizationData & optimizationData, UInt nnodes_):
+			MixedFERegressionBase<RegressionDataEllipticSpaceVarying>(mesh_time, regressionData, optimizationData, nnodes_, MixedSplineRegression<RegressionDataEllipticSpaceVarying>::SPLINE_DEGREE) {};
 
 		template<UInt ORDER, UInt mydim, UInt ndim>
 		void preapply(const MeshHandler<ORDER,mydim,ndim> & mesh)

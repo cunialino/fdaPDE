@@ -58,5 +58,4 @@ typedef multi_bool_type<false, true> ft_type;
 typedef multi_bool_type<true, false> tf_type;
 typedef multi_bool_type<false, false> ff_type;
 
-
 #endif /* FDAPDE_H_ */

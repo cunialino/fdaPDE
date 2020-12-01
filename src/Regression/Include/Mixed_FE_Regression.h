@@ -81,6 +81,7 @@ class MixedFERegressionBase
 		bool isPsiComputed = false;
 		bool isR0Computed  = false;
 		bool isR1Computed  = false;
+        bool isSPComputed  = false;
 
 		bool isSpaceVarying = false; //!< used to distinguish whether to use the forcing term u in apply() or not
 		bool isGAMData;
@@ -191,6 +192,8 @@ class MixedFERegressionBase
 		//! A method returning the number of nodes of the mesh
 		inline UInt getnnodes_(void) const {return this->N_;}
 		inline bool isSV(void) const {return this->isSpaceVarying;}
+
+        inline Eigen::ComputationInfo const getDecInfo() const { return matrixNoCovdec_.info(); }
 
 		//! A function that given a vector u, performs Q*u efficiently
 		MatrixXr LeftMultiplybyQ(const MatrixXr & u);

@@ -134,6 +134,7 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
                           incidence_matrix = NULL, areal.data.avg = TRUE,
                           FLAG_MASS = FALSE, FLAG_PARABOLIC = FALSE, IC = NULL,
                           search = "tree", bary.locations = NULL,
+                          family = "gaussian", mu0 = NULL, scale.param = NULL, threshold.FPIRLS = 0.0002020, max.steps.FPIRLS = 15,
                           lambda.selection.criterion = "grid", DOF.evaluation = NULL, lambda.selection.lossfunction = NULL,
                           lambdaS = NULL, lambdaT = NULL, DOF.stochastic.realizations = 100, DOF.stochastic.seed = 0, DOF.matrix = NULL, GCV.inflation.factor = 1, lambda.optimization.tolerance = 0.05)
 {
@@ -199,7 +200,12 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
   {
     stop("'lambda.selection.lossfunction' has to be 'GCV'.")
   }
+
+  # OPTIMIZATION NOT IMPLEMENTED FOR GAM
+  if(family != 'gaussian'& optim[1]!=0)
+    stop("'lambda.selection.criterion' = 'grid' is the only method implemented for GAM problems")
   
+
   if(any(lambdaS<=0) || any(lambdaT<=0))
     stop("'lambda' can not be less than or equal to 0")
   
@@ -335,130 +341,264 @@ smooth.FEM.time<-function(locations = NULL, time_locations = NULL, observations,
     }
   }
 
+  # FAMILY CHECK
+  family_admit = c("binomial", "exponential", "gamma", "poisson", "gaussian")
+  if(sum(family==family_admit)==0){
+   stop("'family' parameter required.\nCheck if it is one of the following: binomial, exponential, gamma, poisson, gaussian")
+  }
   ################## End checking parameters, sizes and conversion #############################
-  if(class(FEMbasis$mesh) == 'mesh.2D' & is.null(PDE_parameters))
+  if(family == "gaussian")
   {
-    bigsol = NULL
-    bigsol = CPP_smooth.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
-      covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
-      incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
-      search = search, bary.locations = bary.locations,
-      optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
-  }else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==FALSE)
+      if(class(FEMbasis$mesh) == 'mesh.2D' & is.null(PDE_parameters))
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+          covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
+          incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+          search = search, bary.locations = bary.locations,
+          optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+      }else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==FALSE)
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.FEM.PDE.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+           covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
+           incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+           FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+           search = search, bary.locations = bary.locations,
+           optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+                                          
+      }else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==TRUE)
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.FEM.PDE.sv.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+          covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
+          incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+          search = search, bary.locations = bary.locations,
+          optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+      }else if(class(FEMbasis$mesh) == 'mesh.2.5D')
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.manifold.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+          covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
+          incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+          search = search, bary.locations = bary.locations,
+          optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+      }else if(class(FEMbasis$mesh) == 'mesh.3D')
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.volume.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+          covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
+          incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+          search = search, bary.locations = bary.locations,
+          optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+      }
+
+  }else
   {
-    bigsol = NULL
-    bigsol = CPP_smooth.FEM.PDE.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
-       covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
-       incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-       FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
-       search = search, bary.locations = bary.locations,
-       optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
-                                      
-  }else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==TRUE)
-  {
-    bigsol = NULL
-    bigsol = CPP_smooth.FEM.PDE.sv.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
-      covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
-      incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
-      search = search, bary.locations = bary.locations,
-      optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
-  }else if(class(FEMbasis$mesh) == 'mesh.2.5D')
-  {
-    bigsol = NULL
-    bigsol = CPP_smooth.manifold.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
-      covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
-      incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
-      search = search, bary.locations = bary.locations,
-      optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
-  }else if(class(FEMbasis$mesh) == 'mesh.3D')
-  {
-    bigsol = NULL
-    bigsol = CPP_smooth.volume.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
-      covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
-      incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
-      FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
-      search = search, bary.locations = bary.locations,
-      optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+    #----------------------------------------------------#
+    ############# GAMs: FPIRLS algorithm #################
+    #----------------------------------------------------#
+    checkGAMParameters(observations = observations, max.steps.FPIRLS = max.steps.FPIRLS, mu0 = mu0, scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS, family = family)
+
+      if(class(FEMbasis$mesh) == 'mesh.2D' & is.null(PDE_parameters))
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.GAM.FEM.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+          covariates = covariates, ndim = ndim, mydim = mydim, BC = BC,
+          incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+          FAMILY=family, mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS, scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
+          search = search, bary.locations = bary.locations,
+          optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+      }else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==FALSE)
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.GAM.FEM.PDE.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+           covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
+           incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+           FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+           FAMILY=family, mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS, scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
+           search = search, bary.locations = bary.locations,
+           optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+                                          
+      }else if(class(FEMbasis$mesh) == 'mesh.2D' & !is.null(PDE_parameters) & space_varying==TRUE)
+      {
+        bigsol = NULL
+        bigsol = CPP_smooth.GAM.FEM.PDE.sv.time(locations = locations, time_locations = time_locations, observations = observations, FEMbasis = FEMbasis, time_mesh=time_mesh,
+          covariates = covariates, PDE_parameters=PDE_parameters, ndim = ndim, mydim = mydim, BC = BC,
+          incidence_matrix = incidence_matrix, areal.data.avg = areal.data.avg,
+          FLAG_MASS = FLAG_MASS, FLAG_PARABOLIC = FLAG_PARABOLIC, IC = IC,
+          FAMILY=family, mu0 = mu0, max.steps.FPIRLS = max.steps.FPIRLS, scale.param = scale.param, threshold.FPIRLS = threshold.FPIRLS,
+          search = search, bary.locations = bary.locations,
+          optim = optim, lambdaS = lambdaS, lambdaT = lambdaT, DOF.stochastic.realizations = DOF.stochastic.realizations, DOF.stochastic.seed = DOF.stochastic.seed, DOF.matrix = DOF.matrix, GCV.inflation.factor = GCV.inflation.factor, lambda.optimization.tolerance = lambda.optimization.tolerance)
+      }
   }
 
-  # ---------- Solution -----------
-  N = nrow(FEMbasis$mesh$nodes)
-  M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
-  if(is.null(IC) && FLAG_PARABOLIC)
-    IC = bigsol[[13]]$coeff
-  if(FLAG_PARABOLIC)
-  {
-    f = array(dim=c(length(IC)+M*N,length(lambdaS),length(lambdaT)))
-    for (i in 1:length(lambdaS))
-     for (j in 1:length(lambdaT))
-       f[,i,j] = c(IC,bigsol[[1]][1:(N*M),i+(j-1)*length(lambdaS)])
+
+  if(family == "gaussian"){
+      ICindx = 13;
+      N = nrow(FEMbasis$mesh$nodes)
+      M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+      if(is.null(IC) && FLAG_PARABOLIC)
+        IC = bigsol[[ICindx]]$coeff
+      if(FLAG_PARABOLIC)
+      {
+        f = array(dim=c(length(IC)+M*N,length(lambdaS),length(lambdaT)))
+        for (i in 1:length(lambdaS))
+         for (j in 1:length(lambdaT))
+           f[,i,j] = c(IC,bigsol[[1]][1:(N*M),i+(j-1)*length(lambdaS)])
+      }
+      else
+        f = array(data=bigsol[[1]][1:(N*M),],dim = c(N*M,length(lambdaS),length(lambdaT)))
+      if(FLAG_PARABOLIC)
+      {
+        g = array(dim=c(length(IC)+M*N,length(lambdaS),length(lambdaT)))
+        for (i in 1:length(lambdaS))
+          for (j in 1:length(lambdaT))
+            g[,i,j] = c(rep(0,length(IC)),bigsol[[1]][(N*M+1):(2*N*M),i+(j-1)*length(lambdaS)])
+      }
+      else
+        g = array(data=bigsol[[1]][(N*M+1):(2*N*M),],dim = c(N*M,length(lambdaS),length(lambdaT)))
+
+      dof = bigsol[[2]]
+      GCV_ = bigsol[[3]]
+      bestlambda = bigsol[[4]]+1
+      if(!is.null(covariates))
+        beta = array(data=bigsol[[5]],dim=c(ncol(covariates),length(lambdaS),length(lambdaT)))
+      else
+        beta = NULL
+
+      if(all(is.na(bigsol[[ICindx]])))
+        ICestimated = NULL
+      else
+        ICestimated = list(IC.FEM=bigsol[[ICindx]],bestlambdaindex=bigsol[[ICindx + 1]],bestlambda=bigsol[[ICindx + 2]],beta=bigsol[[ICindx + 3]])
+
+        # Save information of Tree Mesh
+         tree_mesh = list(
+         treelev = bigsol[[6]][1],
+         header_orig= bigsol[[7]],
+         header_scale = bigsol[[8]],
+         node_id = bigsol[[9]][,1],
+         node_left_child = bigsol[[9]][,2],
+         node_right_child = bigsol[[9]][,3],
+         node_box= bigsol[[10]])
+
+       # Reconstruct FEMbasis with tree mesh
+       mesh.class= class(FEMbasis$mesh)
+       if (is.null(FEMbasis$mesh$treelev)) { #if doesn't exist the tree information
+         FEMbasis$mesh = append(FEMbasis$mesh, tree_mesh)
+       } #if already exist the tree information, don't append
+
+       class(FEMbasis$mesh) = mesh.class
+
+       # Save information of Barycenter
+       if (is.null(bary.locations)) {
+           bary.locations = list(locations=locations, element_ids = bigsol[[11]], barycenters = bigsol[[12]])
+       }
+       class(bary.locations) = "bary.locations"
+
+      # Make FEM.time objects
+      fit.FEM.time  = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC)
+      PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC)
+
+      # Prepare return list
+      reslist = NULL
+      
+          if(!is.null(lambda.selection.lossfunction))
+          {
+            stderr=sqrt(GCV_*(sum(!is.na(observations))-dof)/sum(!is.na(observations)))
+            reslist=list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time,
+                    beta = beta, edf = dof, GCV = GCV_, stderr=stderr, bestlambda = bestlambda, ICestimated=ICestimated, bary.locations = bary.locations)
+          }else{
+            reslist=list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time, beta = beta, ICestimated=ICestimated, bary.locations = bary.locations)
+          }
   }
-  else
-    f = array(data=bigsol[[1]][1:(N*M),],dim = c(N*M,length(lambdaS),length(lambdaT)))
-  if(FLAG_PARABOLIC)
-  {
-    g = array(dim=c(length(IC)+M*N,length(lambdaS),length(lambdaT)))
-    for (i in 1:length(lambdaS))
-      for (j in 1:length(lambdaT))
-        g[,i,j] = c(rep(0,length(IC)),bigsol[[1]][(N*M+1):(2*N*M),i+(j-1)*length(lambdaS)])
-  }
-  else
-    g = array(data=bigsol[[1]][(N*M+1):(2*N*M),],dim = c(N*M,length(lambdaS),length(lambdaT)))
+  else{
+      ICindx = 16
+      N = nrow(FEMbasis$mesh$nodes)
+      M = ifelse(FLAG_PARABOLIC,length(time_mesh)-1,length(time_mesh) + 2);
+      if(is.null(IC) && FLAG_PARABOLIC)
+        IC = bigsol[[ICindx]]$coeff[, bigsol[[ICindx+1]]+1]
+      if(FLAG_PARABOLIC)
+      {
+        f = array(dim=c(length(IC)+M*N,length(lambdaS),length(lambdaT)))
+        for (i in 1:length(lambdaS))
+         for (j in 1:length(lambdaT))
+           f[,i,j] = c(IC,bigsol[[1]][1:(N*M),i+(j-1)*length(lambdaS)])
+      }
+      else
+        f = array(data=bigsol[[1]][1:(N*M),],dim = c(N*M,length(lambdaS),length(lambdaT)))
+      if(FLAG_PARABOLIC)
+      {
+        g = array(dim=c(length(IC)+M*N,length(lambdaS),length(lambdaT)))
+        for (i in 1:length(lambdaS))
+          for (j in 1:length(lambdaT))
+            g[,i,j] = c(rep(0,length(IC)),bigsol[[1]][(N*M+1):(2*N*M),i+(j-1)*length(lambdaS)])
+      }
+      else
+        g = array(data=bigsol[[1]][(N*M+1):(2*N*M),],dim = c(N*M,length(lambdaS),length(lambdaT)))
 
-  dof = bigsol[[2]]
-  GCV_ = bigsol[[3]]
-  bestlambda = bigsol[[4]]+1
-  if(!is.null(covariates))
-    beta = array(data=bigsol[[5]],dim=c(ncol(covariates),length(lambdaS),length(lambdaT)))
-  else
-    beta = NULL
+      dof = bigsol[[2]]
+      GCV_ = bigsol[[3]]
+      bestlambda = bigsol[[4]]+1
+      if(!is.null(covariates))
+        beta = array(data=bigsol[[5]],dim=c(ncol(covariates),length(lambdaS),length(lambdaT)))
+      else
+        beta = NULL
 
-  if(all(is.na(bigsol[[13]])))
-    ICestimated = NULL
-  else
-    ICestimated = list(IC.FEM=bigsol[[13]],bestlambdaindex=bigsol[[14]],bestlambda=bigsol[[15]],beta=bigsol[[16]])
+      if(all(is.na(bigsol[[ICindx]])))
+        ICestimated = NULL
+      else
+        ICestimated = list(IC.FEM=bigsol[[ICindx]],bestlambdaindex=bigsol[[ICindx + 1]],bestlambda=bigsol[[ICindx + 2]],beta=bigsol[[ICindx + 3]])
 
-    # Save information of Tree Mesh
-     tree_mesh = list(
-     treelev = bigsol[[6]][1],
-     header_orig= bigsol[[7]],
-     header_scale = bigsol[[8]],
-     node_id = bigsol[[9]][,1],
-     node_left_child = bigsol[[9]][,2],
-     node_right_child = bigsol[[9]][,3],
-     node_box= bigsol[[10]])
+        # Save information of Tree Mesh
+         tree_mesh = list(
+         treelev = bigsol[[6]][1],
+         header_orig= bigsol[[7]],
+         header_scale = bigsol[[8]],
+         node_id = bigsol[[9]][,1],
+         node_left_child = bigsol[[9]][,2],
+         node_right_child = bigsol[[9]][,3],
+         node_box= bigsol[[10]])
 
-   # Reconstruct FEMbasis with tree mesh
-   mesh.class= class(FEMbasis$mesh)
-   if (is.null(FEMbasis$mesh$treelev)) { #if doesn't exist the tree information
-     FEMbasis$mesh = append(FEMbasis$mesh, tree_mesh)
-   } #if already exist the tree information, don't append
+       # Reconstruct FEMbasis with tree mesh
+       mesh.class= class(FEMbasis$mesh)
+       if (is.null(FEMbasis$mesh$treelev)) { #if doesn't exist the tree information
+         FEMbasis$mesh = append(FEMbasis$mesh, tree_mesh)
+       } #if already exist the tree information, don't append
 
-   class(FEMbasis$mesh) = mesh.class
+       class(FEMbasis$mesh) = mesh.class
 
-   # Save information of Barycenter
-   if (is.null(bary.locations)) {
-       bary.locations = list(locations=locations, element_ids = bigsol[[11]], barycenters = bigsol[[12]])
-   }
-   class(bary.locations) = "bary.locations"
+       # Save information of Barycenter
+       if (is.null(bary.locations)) {
+           bary.locations = list(locations=locations, element_ids = bigsol[[11]], barycenters = bigsol[[12]])
+       }
+       class(bary.locations) = "bary.locations"
 
-  # Make FEM.time objects
-  fit.FEM.time  = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC)
-  PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC)
+      # Make FEM.time objects
+      fit.FEM.time  = FEM.time(f, time_mesh, FEMbasis, FLAG_PARABOLIC)
+      PDEmisfit.FEM.time = FEM.time(g, time_mesh, FEMbasis, FLAG_PARABOLIC)
 
-  # Prepare return list
-  reslist = NULL
-  
-  if(!is.null(lambda.selection.lossfunction))
-  {
-    stderr=sqrt(GCV_*(sum(!is.na(observations))-dof)/sum(!is.na(observations)))
-    reslist=list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time,
-            beta = beta, edf = dof, GCV = GCV_, stderr=stderr, bestlambda = bestlambda, ICestimated=ICestimated, bary.locations = bary.locations)
-  }else{
-    reslist=list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time, beta = beta, ICestimated=ICestimated, bary.locations = bary.locations)
+      # Prepare return list
+      reslist = NULL
+      
+      fn.eval = bigsol[[13]]
+      J_minima = bigsol[[14]]
+      variance.est=bigsol[[15]]
+      if( variance.est[1]<0 ) variance.est = NULL
+      if(!is.null(lambda.selection.lossfunction))
+      {
+        stderr=sqrt(GCV_*(sum(!is.na(observations))-dof)/sum(!is.na(observations)))
+        reslist=list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time,
+                beta = beta, edf = dof, GCV = GCV_, stderr=stderr, bestlambda = bestlambda, ICestimated=ICestimated, bary.locations = bary.locations, fn.eval = fn.eval, J_minima = J_minima, variance.est = variance.est)
+      }else{
+        reslist=list(fit.FEM.time = fit.FEM.time, PDEmisfit.FEM.time = PDEmisfit.FEM.time, beta = beta, ICestimated=ICestimated, bary.locations = bary.locations, fn.eval = fn.eval, J_minima = J_minima, variance.est = variance.est)
+      }
+
   }
 
   return(reslist)

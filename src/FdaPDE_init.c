@@ -8,6 +8,8 @@
 */
 
 /* .Call calls */
+extern SEXP Density_Estimation(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP Density_Initialization(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP eval_FEM_fd(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP eval_FEM_time(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP eval_FEM_time_nodes(SEXP, SEXP, SEXP, SEXP, SEXP);
@@ -37,11 +39,14 @@ extern SEXP CPP_TetraMeshSplitOrder2(SEXP, SEXP);
 extern SEXP gam_Laplace(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP gam_PDE(SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 extern SEXP gam_PDE_space_varying( SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP gam_Laplace_time( SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP gam_PDE_time(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-extern SEXP gam_PDE_sv_time(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP gam_Laplace_time(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP gam_PDE_time(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+extern SEXP gam_PDE_space_varying_time( SEXP, SEXP, SEXP, SEXP, SEXP,SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
 
 static const R_CallMethodDef CallEntries[] = {
+    {"Density_Estimation",                (DL_FUNC) &Density_Estimation,                19},
+    {"Density_Initialization",            (DL_FUNC) &Density_Initialization,            18},
     {"eval_FEM_fd",                       (DL_FUNC) &eval_FEM_fd,                       10},
     {"eval_FEM_time",                     (DL_FUNC) &eval_FEM_time,                     13},
     {"eval_FEM_time_nodes",               (DL_FUNC) &eval_FEM_time_nodes,                5},
@@ -53,11 +58,12 @@ static const R_CallMethodDef CallEntries[] = {
     {"points_projection",                 (DL_FUNC) &points_projection,                  2},
     {"R_triangulate_native",              (DL_FUNC) &R_triangulate_native,               8},
     {"regression_Laplace",                (DL_FUNC) &regression_Laplace,                20},
-    {"regression_Laplace_time",           (DL_FUNC) &regression_Laplace_time,           27},
+    {"regression_Laplace_time",           (DL_FUNC) &regression_Laplace_time,           26},
     {"regression_PDE",                    (DL_FUNC) &regression_PDE,                    23},
     {"regression_PDE_space_varying",      (DL_FUNC) &regression_PDE_space_varying,      24},
     {"regression_PDE_space_varying_time", (DL_FUNC) &regression_PDE_space_varying_time, 30},
     {"regression_PDE_time",               (DL_FUNC) &regression_PDE_time,               29},
+    {"Smooth_FPCA",                       (DL_FUNC) &Smooth_FPCA,                       15},
     {"tree_mesh_construction",            (DL_FUNC) &tree_mesh_construction,             4},
     {"CPP_SurfaceMeshHelper",             (DL_FUNC) &CPP_SurfaceMeshHelper,              2},
     {"CPP_SurfaceMeshOrder2",             (DL_FUNC) &CPP_SurfaceMeshOrder2,              2},
@@ -70,9 +76,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"gam_Laplace",                       (DL_FUNC) &gam_Laplace,                       25},
     {"gam_PDE",                           (DL_FUNC) &gam_PDE,                           28},
     {"gam_PDE_space_varying",             (DL_FUNC) &gam_PDE_space_varying,             29},
-    {"gam_Laplace_time",                  (DL_FUNC) &gam_Laplace_time,                  32},
-    {"gam_PDE_time",                      (DL_FUNC) &gam_PDE_time,                      35},
-    {"gam_PDE_sv_time",                   (DL_FUNC) &gam_PDE_sv_time,                   36},
+    {"gam_Laplace_time",                  (DL_FUNC) &gam_Laplace_time,                  31},
+    {"gam_PDE_time",                      (DL_FUNC) &gam_PDE_time,                      34},
+    {"gam_PDE_space_varying_time",        (DL_FUNC) &gam_PDE_space_varying_time,        35},
     {NULL, NULL, 0}
 };
 
