@@ -39,7 +39,6 @@ SEXP GAM_skeleton(InputHandler &GAMData, OptimizationData &optimizationData,
     const MatrixXr &GCV = fpirls->getGCV();
 
     const UInt bestLambda = optimizationData.get_best_lambda_S();
-    std::cout << bestLambda << std::endl;
 
     MatrixXv beta;
     if (GAMData.getCovariates()->rows() == 0) {
