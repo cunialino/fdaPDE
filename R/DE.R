@@ -89,9 +89,8 @@
 #' lambda = 0.1
 #' sol <- DE.FEM(data = data, FEMbasis = FEMbasis, lambda = lambda, fvec=NULL, heatStep=0.1,
 #'                   heatIter=500, stepProposals=NULL, tol1=1e-4, tol2=0, print=FALSE, 
-#'                   nfolds=NULL, nsimulations=500,step_method = "Fixed_Step", 
-#'                   direction_method = "BFGS",preprocess_method="NoCrossValidation", 
-#'                   search = 2)
+#'                   nfolds=NULL, nsimulations=300,step_method = "Fixed_Step", 
+#'                   direction_method = "BFGS",preprocess_method="NoCrossValidation")
 #' 
 #' ## Visualization 
 #' n = 100
@@ -142,12 +141,12 @@ DE.FEM <- function(data, FEMbasis, lambda, fvec=NULL, heatStep=0.1, heatIter=500
   ###################### C++ Code Execution #########################################################
   bigsol = NULL
   if(class(FEMbasis$mesh) == 'mesh.2D'){	  
-    print('C++ Code Execution')
+    
     bigsol = CPP_FEM.DE(data, FEMbasis, lambda, fvec, heatStep, heatIter, ndim, mydim, step_method, direction_method, preprocess_method,
                         stepProposals, tol1, tol2, print, nfolds, nsimulations, search)
     
   } else if(class(FEMbasis$mesh) == 'mesh.2.5D'){
-    print('C++ Code Execution')
+    
     bigsol = CPP_FEM.manifold.DE(data, FEMbasis, lambda, fvec, heatStep, heatIter, ndim, mydim, step_method, direction_method, preprocess_method,
                                  stepProposals, tol1, tol2, print, nfolds, nsimulations, search)
     
