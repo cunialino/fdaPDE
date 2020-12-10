@@ -1,5 +1,5 @@
 load("P2_M11_n405_m11/poisson.RData")
-if(set$FAMILY == "gamma"){
+  if(set$FAMILY == "gamma"){
   betas$TPS = -betas$TPS
   betas$SOAP = -betas$SOAP
 }
