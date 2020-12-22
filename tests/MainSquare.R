@@ -9,41 +9,29 @@ source("Plots.R")
 source("Utils.R")
 source("Settings.R")
 
-#f = function(x, y, z, FAMILY = "gamma") {
-#      a = -1
-#      b = 0
-#      if (sum(FAMILY == c("gamma", "exponential")) >= 1) {
-#        a = .5
+#For square domain!
+#f = function(x, y, t, FAMILY = "gamma"){
+#    a = 1
+#    b = 0
+#    c1 = 1
+#    c2 = 1
+#    if(sum(FAMILY == c("gamma", "exponential"))>=1){
+#        a = -1
 #        b = 2
-#      }
-#      coe = function(x, y) 1 / 2 * sin(5 * pi * x) * exp(-x ^ 2) + 1
-#      -1/a*(sin(2 * pi * (coe(y, 1) * x * cos(z - 2) - y * sin(z - 2))) *
-#          cos(2 * pi * (coe(y, 1) * x * cos(z - 2 + pi / 2) +
-#                        coe(x, 1) * y * sin((z - 2) * pi / 2))) + b)
 #    }
-f = function(x, y, t, FAMILY = "gamma"){
-    a = 1
-    b = 0
-    c1 = 1
-    c2 = 1
-    if(sum(FAMILY == c("gamma", "exponential"))>=1){
-        a = -1
-        b = 2
-    }
-    #return(1/a*(1/(4*pi*t)*exp(-(x^2+y^2)/(4*pi*t))+b))
-    return (1/a*(sin(2*pi*x)*sin(2*pi*y)*exp(-sqrt(8*pi^2)*t)+b))
-}
-set <- settings(F)
-fams <- c("binomial", "poisson", "exponential")
-set$f <- f
-tau <- 5/sqrt(8*pi^2)
+#    #return(1/a*(1/(4*pi*t)*exp(-(x^2+y^2)/(4*pi*t))+b))
+#    return (1/a*(sin(2*pi*x)*sin(2*pi*y)*exp(-sqrt(8*pi^2)*t)+b))
+#}
+set <- settings(T)
+fams <- "gamma" #c("binomial", "poisson", "exponential")
+#set$f <- f
+tau <- pi
 set$time_locations <- set$time_locations*tau
 set$time_mesh <- set$time_mesh*tau 
 set$space_time_locations[, 1] <- set$space_time_locations[, 1]*tau
 set$evalGrid$t <- set$evalGrid$t*tau
 # set$lambdaT <- 10^seq(-5, -3, 0.5)
-set$NSIM = 50
-
+set$NSIM =1 
 for (fam in fams) {
   set$FAMILY = fam
 
@@ -60,7 +48,7 @@ for (fam in fams) {
   for (sim in 1:set$NSIM) {
     print(paste("Sim #", sim, sep = ""))
     sims <- NULL
-    sims <- runsim(set, c(T, T, T, T), sim)
+    sims <- runsim(set, c(T, F, F, F), sim)
     R <- eval.rmse(sims, set, covariates = !is.null((set$betas)))
 
     time$GSRPDE = time$GSRPDE + sims$timeGSRPDE

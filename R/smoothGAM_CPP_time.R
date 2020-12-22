@@ -374,7 +374,7 @@ CPP_smooth.GAM.FEM.PDE.time <- function(
         DOF.stochastic.seed, DOF.matrix_IC, GCV.inflation.factor,
         lambda.optimization.tolerance, PACKAGE = "fdaPDE")
 
-    if (ICsol[[6]] == 1) {
+    if (ICsol[[4]] == 0) {
       lambdaSIC <- 10 ^ seq(-6, 3, 0.1)
       lambdaSIC <- as.matrix(lambdaSIC)
       storage.mode(lambdaSIC) <- "double"
@@ -388,7 +388,7 @@ CPP_smooth.GAM.FEM.PDE.time <- function(
           DOF.stochastic.seed, DOF.matrix_IC, GCV.inflation.factor,
           lambda.optimization.tolerance, PACKAGE = "fdaPDE")
     } else {
-      if (ICsol[[6]] == length(lambdaSIC)) {
+      if (ICsol[[4]] == length(lambdaSIC)-1) {
         lambdaSIC <- 10 ^ seq(3, 5, 0.1)
         lambdaSIC <- as.matrix(lambdaSIC)
         storage.mode(lambdaSIC) <- "double"
@@ -406,11 +406,11 @@ CPP_smooth.GAM.FEM.PDE.time <- function(
 
     if (nrow(covariates) != 0) {
       betaIC = ICsol[[15]]
-      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes), ]  # best IC estimation
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]] + 1]  # best IC estimation
       covariates = covariates[(NobsIC + 1):nrow(covariates), ]
       covariates <- as.matrix(covariates)
     } else {
-      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes), ]  # best IC estimation
+      IC = ICsol[[1]][1:nrow(FEMbasis$mesh$nodes),ICsol[[4]] + 1 ]  # best IC estimation
       betaIC = NULL
     }
     ## return a FEM object containing IC estimates with best lambda and best lambda index

@@ -68,7 +68,7 @@ settings <- function(flagMeshC = T) {
   Settings = NULL
 
   Settings$N = 16
-  Settings$M = 11
+  Settings$M = 6
 
   Settings$m = Settings$M
   Settings$n = 400

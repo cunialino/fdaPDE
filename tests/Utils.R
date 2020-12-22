@@ -58,8 +58,7 @@ runsim <- function(set, whichone = c(T, T, T, T), sim) {
   set$desmat[[sim]] <<- desmat
   mode(data) <- "double"
   if (plotF)
-    plot.settings(
-        set$f, set$inv.link, data, set,
+    plot.settings( data, set,
         paste(set$dir_name, "/figures/Settings", set$FAMILY, ".jpeg", sep = ""))
 
   reslist = NULL
