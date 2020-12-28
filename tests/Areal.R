@@ -63,7 +63,7 @@ desmat <- NULL  # rbeta(n=length(int), shape1 = 2, shape2 = 2)
 set$loc <- matrix(unlist(lapply(polys, function(z) z@labpt)),
                   nrow = length(polys), ncol = 2, byrow = T)
 field <- matrix(int, nrow = length(int), ncol = 1)  # - desmat * 3
-NSIM = 10
+NSIM = 25
 avg.coeffs = NULL
 RMSE = NULL
 for (sim in 1:NSIM) {
@@ -119,9 +119,9 @@ if (!is.null(avg.coeffs$GSRPDE)) {
                                          avg.coeffs$GSRPDE, set$time_mesh, set$FEMbasis, F)
 }
 
-plot.settings(data, set, "arealset.jpeg")
-plot.results(sims, set, "areal.jpeg")
-jpeg("RMSEareal.jpeg", width = 1200, height = 1200, res = 300)
+plot.settings(data, set, "arealset.pdf")
+plot.results(sims, set, "areal.pdf")
+pdf("RMSEareal.pdf") #, width = 1200, height = 1200, res = 300)
 boxplot(list(RMSE$GSRtPDE, RMSE$GSRPDE), names = NULL)
 dev.off()
 

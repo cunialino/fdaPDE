@@ -634,7 +634,6 @@ MatrixXr MixedFERegressionBase<InputHandler>::system_solve(
         }
         return x1;
     }
-    std::cerr << "dec err" << std::endl;
     return MatrixXr(b.rows(), b.cols());
 }
 

@@ -1,6 +1,9 @@
 #ifndef __FPIRLS_IMP_H__
 #define __FPIRLS_IMP_H__
 
+#include <iostream>
+#include <limits>  //For nan
+
 #include "FPIRLS.h"
 
 /*********** FPIRLS_base Methods ************/
@@ -339,6 +342,9 @@ void FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::compute_GCV(
                  (y->size() - optimizationData_.get_tuning() *
                                   _dof(lambdaS_index, lambdaT_index));
 
+    if (regression_.getDecInfo() != 0)
+        GCV_value = std::numeric_limits<double>::quiet_NaN();
+
     _GCV(lambdaS_index, lambdaT_index) = GCV_value;
 
     //best lambda
@@ -353,10 +359,7 @@ template <typename InputHandler, UInt ORDER, UInt mydim, UInt ndim>
 void FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::compute_variance_est(
     UInt& lambdaS_index, UInt& lambdaT_index) {
     Real phi;
-    if (this->scale_parameter_flag_ &&
-        this->optimizationData_.get_loss_function() !=
-            "GCV") {  // if scale param should be
-        _variance_estimates.resize(this->mu_.size(), 0);
+    if (this->scale_parameter_flag_) {  // if scale param should be
         const UInt n_obs = this->inputData_.getObservations()->size();
 
         //scale parameter computed as: mean((var.link(mu)*phi)/mu), and phi is computed as in Wood IGAM

@@ -180,8 +180,11 @@ SEXP GAM_skeleton_time(InputHandler &GAMData,
     // GAM PARAMETER ESTIMATIONS
     SET_VECTOR_ELT(result, 12,
                    Rf_allocMatrix(REALSXP, fn_hat(0).size(), fn_hat.size()));
-    SET_VECTOR_ELT(result, 13, Rf_allocVector(REALSXP, J_value.size()));
-    SET_VECTOR_ELT(result, 14, Rf_allocVector(REALSXP, variance_est.size()));
+    SET_VECTOR_ELT(result, 13,
+                   Rf_allocMatrix(REALSXP, J_value.rows(), J_value.cols()));
+    SET_VECTOR_ELT(
+        result, 14,
+        Rf_allocMatrix(REALSXP, variance_est.rows(), variance_est.cols()));
 
     // return fn hat
     Real *rans12 = REAL(VECTOR_ELT(result, 12));
@@ -192,14 +195,18 @@ SEXP GAM_skeleton_time(InputHandler &GAMData,
 
     // return J_value
     Real *rans13 = REAL(VECTOR_ELT(result, 13));
-    for (UInt i = 0; i < J_value.size(); i++) {
-        rans13[i] = J_value(i);
+    for (UInt i = 0; i < J_value.rows(); i++) {
+        for (UInt j = 0; j < J_value.cols(); j++) {
+            rans13[i + J_value.rows() * j] = J_value(i, j);
+        }
     }
 
     // return scale parameter
     Real *rans14 = REAL(VECTOR_ELT(result, 14));
-    for (UInt j = 0; j < variance_est.size(); j++) {
-        rans14[j] = variance_est(j);
+    for (UInt i = 0; i < variance_est.rows(); i++) {
+        for (UInt j = 0; j < variance_est.cols(); j++) {
+            rans14[i + variance_est.rows() * j] = variance_est(i, j);
+        }
     }
 
     UNPROTECT(1);
