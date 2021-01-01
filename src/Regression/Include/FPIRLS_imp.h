@@ -1,6 +1,7 @@
 #ifndef __FPIRLS_IMP_H__
 #define __FPIRLS_IMP_H__
 
+#include <cmath>
 #include <iostream>
 #include <limits>  //For nan
 
@@ -332,27 +333,38 @@ void FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::compute_GCV(
     const VectorXr* y = inputData_.getInitialObservations();
     Real GCV_value = 0;
 
-    for (UInt j = 0; j < y->size(); j++)
-        GCV_value += dev_function(mu_[j], (*y)[j]);  //norm computation
-
-    GCV_value *= y->size();
-
-    GCV_value /= (y->size() - optimizationData_.get_tuning() *
-                                  _dof(lambdaS_index, lambdaT_index)) *
-                 (y->size() - optimizationData_.get_tuning() *
-                                  _dof(lambdaS_index, lambdaT_index));
-
-    if (regression_.getDecInfo() != 0)
+    if (regression_.getDecInfo() != 0) {
         GCV_value = std::numeric_limits<double>::quiet_NaN();
+    } else {
+        bool check_admissibility = true;
+        for (UInt j = 0; j < check_admissibility && y->size(); j++) {
+            if (mu_[j] > 0 && (*y)[j] > 0)
+                GCV_value += dev_function(
+                    mu_[j],
+                    (*y)[j]);  //std::pow((mu_[j] - (*y)[j]), 2.);  //norm computation
+            else {
+                GCV_value =
+                    10e20;  //std::numeric_limits<double>::infinity(); // limit for mu->0 or x -> 0 of dev_fun is infinity
+                check_admissibility = false;
+            }
+        }
+        if (check_admissibility) {
+            GCV_value *= y->size();
 
-    _GCV(lambdaS_index, lambdaT_index) = GCV_value;
+            GCV_value /=
+                std::pow(y->size() - optimizationData_.get_tuning() *
+                                         _dof(lambdaS_index, lambdaT_index),
+                         2);
 
-    //best lambda
-    if (GCV_value < optimizationData_.get_best_value()) {
-        optimizationData_.set_best_lambda_S(lambdaS_index);
-        optimizationData_.set_best_lambda_T(lambdaT_index);
-        optimizationData_.set_best_value(GCV_value);
+            //best lambda
+            if (GCV_value < optimizationData_.get_best_value()) {
+                optimizationData_.set_best_lambda_S(lambdaS_index);
+                optimizationData_.set_best_lambda_T(lambdaT_index);
+                optimizationData_.set_best_value(GCV_value);
+            }
+        }
     }
+    _GCV(lambdaS_index, lambdaT_index) = GCV_value;
 }
 
 template <typename InputHandler, UInt ORDER, UInt mydim, UInt ndim>

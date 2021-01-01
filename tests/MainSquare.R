@@ -23,26 +23,24 @@ source("Settings.R")
 #    return (1/a*(sin(2*pi*x)*sin(2*pi*y)*exp(-sqrt(8*pi^2)*t)+b))
 # }
 set <- settings(T)
-fams <- "binomial" # c("gamma", "binomial", "poisson", "exponential")
+fams <- "gamma" # c("gamma", "binomial", "poisson", "exponential")
 # set$f <- f
 tau <- pi
+set$scale <- 1
 set$time_locations <- set$time_locations * tau
 set$time_mesh <- set$time_mesh * tau
 set$space_time_locations[, 1] <- set$space_time_locations[, 1] * tau
 set$evalGrid$t <- set$evalGrid$t * tau
-# set$lambdaS  <-  10^seq(-4, -2, 0.5)
-# set$lambdaT <- 10^seq(-5, -3, 0.5)
+#set$lambdaS  <-  10^seq(-1, 0, 1) #seq(-4, -2, 0.5)
+#set$lambdaT <- 10^seq(-1, 0, 1) #seq(-5, -3, 0.5)
 # set$lambdaTs <- 10^seq(-5, -3, 0.5)
 set$mesh <- refine.mesh.2D(set$mesh, maximum_area = .025, minimum_angle = 30)
-set$NSIM <- 25
+set$NSIM <- 5
+set$maxiters  <- 30
+set$inflfac <- 3
 for (fam in fams) {
   set$FAMILY <- fam
 
-  if (fam == "binomial") {
-    set$inflfac <- 1.5
-  } else {
-    set$inflfac <- NULL
-  }
   RMSE <- NULL
   betas <- NULL
   sigmas <- NULL
@@ -58,13 +56,14 @@ for (fam in fams) {
   for (sim in 1:set$NSIM) {
     print(paste("Sim #", sim, sep = ""))
     sims <- NULL
-    sims <- runsim(set, c(T, T, T, T), sim)
+    sims <- runsim(set, c(T, F, F, T), sim)
     R <- eval.rmse(sims, set, covariates = !is.null((set$betas)))
 
     time$GSRtPDE <- time$GSRtPDE + sims$timeGSRtPDE
     time$GSRPDE <- time$GSRPDE + sims$timeGSRPDE
     time$TPS <- time$TPS + sims$timeTPS
     time$SOAP <- time$SOAP + sims$timeSOAP
+    print(sims$GSRtPDE$GCV)
     print(sims$GSRtPDE$bestlambda)
 
     RMSE$GSRtPDE <- c(RMSE$GSRtPDE, R$GSRtPDE)
