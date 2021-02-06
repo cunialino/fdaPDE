@@ -660,7 +660,24 @@ smooth.FEM.time <- function(
         # Prepare return list
         reslist = NULL
 
-        fn.eval = bigsol[[13]]
+        nm <- length(observations)
+        fn.eval = array(dim = c(nm, length(lambdaS), length(lambdaT)))
+        if(FLAG_PARABOLIC){
+            ICfn.eval = bigsol[[ICindx+4]][, bigsol[[ICindx + 1]]]
+            print(paste("nm: ", nm, " length IC fn.eval=", length(ICfn.eval)))
+            nm <- nm - length(ICfn.eval)
+            for (i in 1:length(lambdaS))
+                for (j in 1:length(lambdaT))
+                    fn.eval[, i, j] =
+                        c(ICfn.eval, bigsol[[13]][1:nm, i + (j - 1) *
+                          length(lambdaS)])
+        }
+        else{
+            for (i in 1:length(lambdaS))
+                for (j in 1:length(lambdaT))
+                    fn.eval[, i, j] = bigsol[[13]][1:nm, i + (j - 1) *
+                                                   length(lambdaS)]
+        }
         J_minima = bigsol[[14]]
         variance.est = bigsol[[15]]
         if (variance.est[1] < 0) variance.est = NULL

@@ -195,12 +195,11 @@ CPP_smooth.GAM.FEM.time <- function(
       betaIC <- NULL
     }
     ## return a FEM object containing IC estimates with best lambda and best lambda index
-  print(ICsol[[3]])
     ICsol <-
       list(
         IC.FEM = FEM(ICsol[[1]][1:nrow(FEMbasis$mesh$nodes), ], FEMbasis),
         bestlambdaindex = ICsol[[4]] + 1,
-        bestlambda = lambdaSIC[ICsol[[4]] + 1], beta = betaIC
+        bestlambda = lambdaSIC[ICsol[[4]] + 1], beta = betaIC, fn.eval=ICsol[[13]]
       )
     time_locations <- time_locations[2:nrow(time_locations)]
     observations <- observations[(NobsIC + 1):length(observations)]
@@ -435,7 +434,7 @@ CPP_smooth.GAM.FEM.PDE.time <- function(
       list(
         IC.FEM = FEM(ICsol[[1]][1:nrow(FEMbasis$mesh$nodes), ], FEMbasis),
         bestlambdaindex = ICsol[[6]] + 1, bestlambda = ICsol[[5]],
-        beta = betaIC
+        beta = betaIC, fn.eval=ICsol[[13]]
       )
     time_locations <- time_locations[2:nrow(time_locations)]
     observations <- observations[(NobsIC + 1):length(observations)]
@@ -682,7 +681,7 @@ CPP_smooth.GAM.FEM.PDE.sv.time <- function(
       list(
         IC.FEM = FEM(ICsol[[1]][1:nrow(FEMbasis$mesh$nodes), ], FEMbasis),
         bestlambdaindex = ICsol[[6]], bestlambda = ICsol[[5]],
-        beta = betaIC
+        beta = betaIC, fn.eval=ICsol[[13]]
       )
     time_locations <- time_locations[2:nrow(time_locations)]
     observations <- observations[(NobsIC + 1):length(observations)]

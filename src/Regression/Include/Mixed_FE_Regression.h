@@ -75,6 +75,8 @@ class MixedFERegressionBase
 		MatrixXr _dof;      		//!< A Eigen::MatrixXr storing the computed dofs
 		MatrixXr _GCV;			//!< A Eigen::MatrixXr storing the computed GCV
 		MatrixXv _beta;			//!< A Eigen::MatrixXv storing the computed beta coefficients
+        MatrixXv _beta_sd; 		//!< A Eigen::MatrixXv storing the computed standard deviation of beta coefficients
+
 
 		//Flag to avoid the computation of R0, R1, Psi_ onece already performed
 		bool isAComputed   = false;
@@ -119,6 +121,8 @@ class MixedFERegressionBase
 		void computeDegreesOfFreedomStochastic(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
 		//! A method computing GCV from the dofs
 		void computeGeneralizedCrossValidation(UInt output_indexS, UInt output_indexT, Real lambdaS, Real lambdaT);
+		//! A method computing sd of betas
+        void evalBetaSd(UInt lambdaSind, UInt lambdaTind, Real lambdaS, Real lambdaT);
 
 		// -- BUILD SYSTEM --
 		 //! Spatial version
@@ -194,6 +198,8 @@ class MixedFERegressionBase
 		inline bool isSV(void) const {return this->isSpaceVarying;}
 
         inline Eigen::ComputationInfo const getDecInfo() const { return matrixNoCovdec_.info(); }
+
+        inline const MatrixXv & getBetaSd(void) const { return this->_beta_sd;}
 
 		//! A function that given a vector u, performs Q*u efficiently
 		MatrixXr LeftMultiplybyQ(const MatrixXr & u);

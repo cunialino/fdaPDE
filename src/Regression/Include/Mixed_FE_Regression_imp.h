@@ -2,11 +2,105 @@
 #define __MIXED_FE_REGRESSION_IMP_H__
 
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <random>
 
+#include "Mixed_FE_Regression.h"
 #include "R_ext/Print.h"
+
+// Get standard deviation of betas
+
+template <typename InputHandler>
+void MixedFERegressionBase<
+InputHandler>::evalBetaSd(UInt lambdaSind, UInt lambdaTind, Real lambdaS, Real lambdaT){
+    UInt nnodes = N_ * M_;
+    UInt nlocations = regressionData_.getNumberofObservations();
+
+    MatrixXr X1;
+    MatrixXr Id(nlocations, nlocations);
+    Id.setIdentity();
+    if (regressionData_.getNumberOfRegions() == 0) {  //pointwise data
+        X1 = psi_.transpose() * LeftMultiplybyQ(Id);
+    } else {  //areal data
+        X1 = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(Id);
+    }
+
+    if (isRcomputed_ == false) {
+        isRcomputed_ = true;
+        //take R0 from the final matrix since it has already applied the dirichlet boundary conditions
+        SpMat R0 = matrixNoCov_.bottomRightCorner(nnodes, nnodes) / lambdaS;
+
+        R0dec_.compute(R0);
+        if (!regressionData_.isSpaceTime() ||
+            !regressionData_.getFlagParabolic()) {
+            MatrixXr X2 = R0dec_.solve(R1_);
+            R_ = R1_.transpose() * X2;
+        }
+    }
+
+    MatrixXr P;
+    MatrixXr X3 = X1;
+
+    //define the penalization matrix: note that for separable smoothin should be P=lambdaS*Psk+lambdaT*Ptk
+    // but the second term has been added to X1 for dirichlet boundary conditions
+    if (regressionData_.isSpaceTime() && regressionData_.getFlagParabolic()) {
+        SpMat X2 = R1_ + lambdaT * LR0k_;
+        P = lambdaS * X2.transpose() * R0dec_.solve(X2);
+    } else {
+        P = lambdaS * R_;
+    }
+
+    if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic())
+        X3 += lambdaT * Ptk_;
+
+    //impose dirichlet boundary conditions if needed
+    if (regressionData_.getDirichletIndices()->size() != 0) {
+        const std::vector<UInt>* bc_indices =
+            regressionData_.getDirichletIndices();
+        UInt nbc_indices = bc_indices->size();
+
+        Real pen = 10e20;
+        for (UInt i = 0; i < nbc_indices; i++) {
+            UInt id = (*bc_indices)[i];
+            X3(id, id) = pen;
+        }
+    }
+
+    //Ma qui ancora, siamo sicuri?
+    X3 -= P;
+    Eigen::PartialPivLU<MatrixXr> Dsolver(X3);
+
+    MatrixXr rhs = psi_*LeftMultiplybyQ(Id);
+    std::cerr << "ci siamo" << std::endl;
+    MatrixXr S = Dsolver.solve(rhs);
+    std::cerr << "ci siamo" << std::endl;
+    S *= psi_;
+    std::cerr << "ci siamo" << std::endl;
+    MatrixXr W(*(this->regressionData_.getCovariates()));
+    std::cerr << "ci siamo" << std::endl;
+    if(not isWTWfactorized_){
+        const VectorXr* weights = this->regressionData_.getWeightsMatrix();    
+        if (weights->size() == 0)
+            WTW_.compute(W.transpose() * W);
+        else
+            WTW_.compute(W.transpose() * weights->asDiagonal() * W);
+        isWTWfactorized_ =
+            true;  // Flag to no repeat the operation next time
+    }
+    S = WTW_.solve(W.transpose() * S);
+    if(lambdaSind == 0){
+        std::cerr << "Matrix S computed" << std::endl;
+    }
+    Id.resize(W.rows(), W.rows());
+    Id.setIdentity();
+    MatrixXr WTW_1 = WTW_.solve(Id);
+    if(lambdaSind == 0){
+        std::cerr << "startig" << std::endl;
+    }
+    _beta_sd(lambdaSind, lambdaTind) = WTW_1 + S * S.transpose();
+}  //adds boundary conditions to all
 
 //----------------------------------------------------------------------------//
 // Dirichlet BC
@@ -405,6 +499,7 @@ template <typename InputHandler>
 void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices() {
     SpMat IM(M_, M_);  // Matrix temporl_nodes x temporal_nodes
     SpMat phi;  // Dummy for updte, old Psi will be overwritten by Psi_tilde
+    UInt m = regressionData_.getNumberofTimeObservations();
 
     // Distinguish between two problem classes
     if (regressionData_.getFlagParabolic()) {  // Parabolic case
@@ -418,6 +513,20 @@ void MixedFERegressionBase<InputHandler>::buildSpaceTimeMatrices() {
             R0_);  // REMARK --> HAS TO BE ADDED TO R1 (that is R1 tilde) in the system
         phi = IM;
         // Right hand side correction for the initial condition:
+        if (M_ != m) {
+            phi.resize(m, M_);
+            Real deltat = mesh_time_[1] - mesh_time_[0];
+            for (int i = 0; i < phi.rows(); ++i) {
+                for (int j = 1; j < phi.cols(); ++j) {
+                    Real csi = std::abs(regressionData_.getTimeLocations()[i] -
+                                        mesh_time_[j]);
+                    if (csi < deltat) {
+                        phi.coeffRef(i, j) = csi / deltat;
+                    }
+                }
+            }
+            phi.makeCompressed();
+        }
         rhs_ic_correction_ = (1 / (mesh_time_[1] - mesh_time_[0])) *
                              (R0_ * (*(regressionData_.getInitialValues())));
     } else {  // Separable case
@@ -492,7 +601,7 @@ void MixedFERegressionBase<InputHandler>::getRightHandData(
                 auto index_i = (*(regressionData_.getObservationsIndices()))[i];
                 rightHandData(index_i) = tmp(i);
             }
-        } else if (
+        } /*else if (
             regressionData_.isLocationsByNodes() &&
             regressionData_.isSpaceTime() &&
             regressionData_
@@ -503,13 +612,13 @@ void MixedFERegressionBase<InputHandler>::getRightHandData(
                 auto index_i = (*(regressionData_.getObservationsIndices()))[i];
                 rightHandData(index_i) = tmp(i);
             }
-            /* now also gam is space time so I still need to call leftmultbyQ, maybe it can be merged into the above if block
+             now also gam is space time so I still need to call leftmultbyQ, maybe it can be merged into the above if block
 			for(UInt i=0; i<regressionData_.getObservationsIndices()->size(); ++i)
 			{ // Simplified multiplication by Psi^t
 				auto index_i = (*(regressionData_.getObservationsIndices()))[i];
 				rightHandData(index_i) = (*obsp)[index_i];
-			}*/
-        } else if (
+			}
+        }*/ else if (
             regressionData_.getNumberOfRegions() ==
             0) {  // Generic pointwise pata, no optimization allowed --> Psi^t*z [or Psi^t*P*z in GAM]
             // LeftMultiplybyQ does nothing since Q==I unless in GAM [where multipliction by Q also involves P (weight matrix)]
@@ -986,6 +1095,7 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply(void) {
     this->_solution.resize(sizeLambdaS, sizeLambdaT);
     this->_dof.resize(sizeLambdaS, sizeLambdaT);
     this->_GCV.resize(sizeLambdaS, sizeLambdaT);
+    this->_beta_sd.resize(sizeLambdaS, sizeLambdaT);
     if (regressionData_.getCovariates()->rows() != 0) {
         this->_beta.resize(sizeLambdaS, sizeLambdaT);
     }
@@ -1072,6 +1182,7 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply(void) {
                         (*obsp - psi_ * _solution(s, t).topRows(psi_.cols()));
                 }
                 _beta(s, t) = WTW_.solve(beta_rhs);
+                evalBetaSd(s, t, lambdaS, lambdaT);
             }
         }
     }

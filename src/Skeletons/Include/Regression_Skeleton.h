@@ -117,6 +117,8 @@ std::pair<MatrixXr, output_Data> optimizer_method_selection(
         MatrixXr solution;
         MatrixXv betas;
         betas.resize(carrier.get_opt_data()->get_size_S(), 1);
+        MatrixXv betas_sd;
+        betas_sd.resize(carrier.get_opt_data()->get_size_S(), 1);
 
         for (UInt j = 0; j < carrier.get_opt_data()->get_size_S(); j++) {
             if (j == 0) {
@@ -135,6 +137,8 @@ std::pair<MatrixXr, output_Data> optimizer_method_selection(
                 carrier.get_model()->getBeta().rows() > 0)
                 betas.coeffRef(j, 0) =
                     carrier.get_model()->getBeta().coeffRef(0, 0);
+                betas_sd.coeffRef(j, 0) =
+                    carrier.get_model()->getBetaSd().coeffRef(0, 0);
         }
 
         // Rprintf("WARNING: partial time after the optimization method\n");
@@ -144,6 +148,7 @@ std::pair<MatrixXr, output_Data> optimizer_method_selection(
 
         // postponed after apply in order to have betas computed
         output.betas = betas;
+        output.betas_sd = betas_sd;
 
         return {solution, output};
     }

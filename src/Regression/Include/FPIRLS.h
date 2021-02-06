@@ -164,6 +164,7 @@ template <typename InputHandler, UInt ORDER, UInt mydim, UInt ndim>
 class FPIRLS_Bernoulli : public FPIRLS <InputHandler, ORDER, mydim, ndim> {
 
   protected:
+
     inline Real link(const Real& mu)const{ return log(mu/(1 - mu)); }
 
     inline Real inv_link(const Real& theta)const{ return 1/(1 + exp(-theta)); }
@@ -223,7 +224,8 @@ class FPIRLS_Exponential : public FPIRLS <InputHandler, ORDER, mydim, ndim>
 
       inline Real var_function(const Real& mu)const{ return mu*mu ;}
 
-      inline Real dev_function(const Real&mu, const Real& x)const{ return 2*(((x-mu)/mu)-log(x/mu)); }
+      inline Real dev_function(const Real&mu, const Real& x)const{ 
+          return (x > 0) ? 2*(((x-mu)/mu)-log(x/mu)):1e20; }
 
     public:
 
@@ -250,7 +252,8 @@ class FPIRLS_Gamma : public FPIRLS <InputHandler, ORDER, mydim, ndim> {
 
       inline Real var_function(const Real& mu)const{ return mu*mu ;}
 
-      inline Real dev_function(const Real&mu, const Real& x)const{ return 2*(((x-mu)/mu)-log(x/mu)); }
+      inline Real dev_function(const Real&mu, const Real& x)const{ 
+          return (x > 0)?2*(((x-mu)/mu)-log(x/mu)):1e20; }
 
     public:
 

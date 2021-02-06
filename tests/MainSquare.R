@@ -26,7 +26,7 @@ set <- settings(T)
 fams <- "gamma" # c("gamma", "binomial", "poisson", "exponential")
 # set$f <- f
 tau <- pi
-set$scale <- 1
+set$scale <- .1
 set$time_locations <- set$time_locations * tau
 set$time_mesh <- set$time_mesh * tau
 set$space_time_locations[, 1] <- set$space_time_locations[, 1] * tau
@@ -36,7 +36,7 @@ set$evalGrid$t <- set$evalGrid$t * tau
 # set$lambdaTs <- 10^seq(-5, -3, 0.5)
 set$mesh <- refine.mesh.2D(set$mesh, maximum_area = .025, minimum_angle = 30)
 set$NSIM <- 5
-set$maxiters  <- 30
+set$maxiters  <- 100
 set$inflfac <- 3
 for (fam in fams) {
   set$FAMILY <- fam

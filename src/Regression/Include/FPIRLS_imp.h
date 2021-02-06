@@ -66,7 +66,6 @@ void FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::apply(
 
     // Initialize the outputs. The temporal dimension is not implemented, for this reason the 2nd dimension is set to 1.
     //
-    /* Quando hai fatto tutto qua devi adattare la seconda dimensione per il caso separabile, quindi con LambdaT:  <07-09-20, Elia Cunial> */
     if (this->inputData_.getCovariates()->rows() > 0)
         _beta_hat.resize(LambdaS_len, LambdaT_len);
     _fn_hat.resize(LambdaS_len, LambdaT_len);
@@ -336,32 +335,21 @@ void FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::compute_GCV(
     if (regression_.getDecInfo() != 0) {
         GCV_value = std::numeric_limits<double>::quiet_NaN();
     } else {
-        bool check_admissibility = true;
-        for (UInt j = 0; j < check_admissibility && y->size(); j++) {
-            if (mu_[j] > 0 && (*y)[j] > 0)
-                GCV_value += dev_function(
-                    mu_[j],
-                    (*y)[j]);  //std::pow((mu_[j] - (*y)[j]), 2.);  //norm computation
-            else {
-                GCV_value =
-                    10e20;  //std::numeric_limits<double>::infinity(); // limit for mu->0 or x -> 0 of dev_fun is infinity
-                check_admissibility = false;
-            }
+        for (UInt j = 0; j < y->size(); j++) {
+                GCV_value += dev_function(mu_[j], (*y)[j]);
         }
-        if (check_admissibility) {
-            GCV_value *= y->size();
+        GCV_value *= y->size();
 
-            GCV_value /=
-                std::pow(y->size() - optimizationData_.get_tuning() *
-                                         _dof(lambdaS_index, lambdaT_index),
-                         2);
+        GCV_value /=
+            std::pow(y->size() - optimizationData_.get_tuning() *
+                                     _dof(lambdaS_index, lambdaT_index),
+                     2);
 
-            //best lambda
-            if (GCV_value < optimizationData_.get_best_value()) {
-                optimizationData_.set_best_lambda_S(lambdaS_index);
-                optimizationData_.set_best_lambda_T(lambdaT_index);
-                optimizationData_.set_best_value(GCV_value);
-            }
+        //best lambda
+        if (GCV_value < optimizationData_.get_best_value()) {
+            optimizationData_.set_best_lambda_S(lambdaS_index);
+            optimizationData_.set_best_lambda_T(lambdaT_index);
+            optimizationData_.set_best_value(GCV_value);
         }
     }
     _GCV(lambdaS_index, lambdaT_index) = GCV_value;

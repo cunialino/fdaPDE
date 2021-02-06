@@ -179,7 +179,7 @@ SEXP GAM_skeleton_time(InputHandler &GAMData,
     }
     // GAM PARAMETER ESTIMATIONS
     SET_VECTOR_ELT(result, 12,
-                   Rf_allocMatrix(REALSXP, fn_hat(0).size(), fn_hat.size()));
+                   Rf_allocMatrix(REALSXP, fn_hat(0, 0).size(), fn_hat.rows()*fn_hat.cols()));
     SET_VECTOR_ELT(result, 13,
                    Rf_allocMatrix(REALSXP, J_value.rows(), J_value.cols()));
     SET_VECTOR_ELT(
@@ -188,9 +188,17 @@ SEXP GAM_skeleton_time(InputHandler &GAMData,
 
     // return fn hat
     Real *rans12 = REAL(VECTOR_ELT(result, 12));
+    for (UInt i = 0; i < fn_hat.rows(); i++) {
+        for (UInt j = 0; j < fn_hat.cols(); j++) {
+            for (UInt k = 0; k < fn_hat(0, 0).size(); k++)
+                rans12[k + fn_hat(0, 0).size() * i +
+                     fn_hat(0, 0).size() * fn_hat.rows() * j] =
+                    fn_hat.coeff(i, j)(k);
+        }
+    }
     for (UInt j = 0; j < fn_hat.size(); j++) {
-        for (UInt i = 0; i < fn_hat(0).size(); i++)
-            rans12[i + fn_hat(0).size() * j] = fn_hat(j)(i);
+        for (UInt i = 0; i < fn_hat(0, 0).size(); i++)
+            rans12[i + fn_hat(0 , 0).size() * j] = fn_hat(j)(i);
     }
 
     // return J_value

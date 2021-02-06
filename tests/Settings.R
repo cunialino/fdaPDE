@@ -38,17 +38,17 @@ fC <- function(x, y, t, FAMILY, exclude = T) {
   res <- numeric(length = length(x))
   for (i in 1:length(x)) {
     if (x[i] >= 0 && y[i] > 0) {
-      res[i] <- cos(t[i]) * (0.25 * pi + x[i]) + (y[i] - 0.5)^2
+      res[i] <- exp(-t[i]) * (0.25 * pi + x[i]) + (y[i] - 0.5)^2
     }
     if (x[i] >= 0 && y[i] <= 0) {
-      res[i] <- cos(2 * t[i]) * (-0.25 * pi - x[i]) + (-y[i] - 0.5)^2
+      res[i] <- exp(-2 * t[i]) * (-0.25 * pi - x[i]) + (-y[i] - 0.5)^2
     }
     if (x[i] < 0 && y[i] > 0) {
-      res[i] <- cos(t[i]) * (-atan(y[i] / x[i]) * 0.5) +
+      res[i] <- exp(-t[i]) * (-atan(y[i] / x[i]) * 0.5) +
         (sqrt(x[i]^2 + y[i]^2) - 0.5)^2 * K[i]
     }
     if (x[i] < 0 && y[i] <= 0) {
-      res[i] <- cos(2 * t[i]) * (-atan(y[i] / x[i]) * 0.5) +
+      res[i] <- exp(-2 * t[i]) * (-atan(y[i] / x[i]) * 0.5) +
         (sqrt(x[i]^2 + y[i]^2) - 0.5)^2 * K[i]
     }
     res[i] <- -1 / a * (res[i] + b)
@@ -105,12 +105,8 @@ settings <- function(flagMeshC = T) {
   if (flagMeshC) {
     boundary_nodes <- horseshoe2D$boundary_nodes
     boundary_segments <- horseshoe2D$boundary_segments
-    locations <- horseshoe2D$locations
-    Settings$mesh <- create.mesh.2D(
-      nodes = rbind(boundary_nodes, locations),
-      segments = boundary_segments,
-      order = Settings$basis_order
-    )
+    Settings$mesh <- create.mesh.2D( boundary_nodes, segments = boundary_segments, order = Settings$basis_order)
+    Settings$mesh <- refine.mesh.2D(Settings$mesh, minimum_angle=30, maximum_area=0.025)
     dimeval <- 10000
     xeval <- seq(-1, 3.5, 0.05)
     yeval <- seq(-1, 1, 0.05)

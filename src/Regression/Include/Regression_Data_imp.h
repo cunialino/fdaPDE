@@ -1,6 +1,8 @@
 #ifndef __REGRESSION_DATA_IMP_H__
 #define __REGRESSION_DATA_IMP_H__
 
+#include "Regression_Data_imp.h"
+
 // Laplace
 template <typename RegressionHandler>
 RegressionDataGAM<RegressionHandler>::RegressionDataGAM(

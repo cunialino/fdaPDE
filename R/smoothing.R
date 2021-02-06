@@ -696,6 +696,14 @@ smooth.FEM<-function(locations = NULL, observations, FEMbasis,
     {
       beta = NULL
     }
+    if(!is.null(covariates))
+    {
+      beta_sd = matrix(data=bigsol[[23]],nrow=ncol(covariates),ncol=length(lambda))
+  	}
+    else
+    {
+      beta_sd = NULL
+    }
 
     # Save information of Tree Mesh
     tree_mesh = list(
@@ -747,6 +755,7 @@ smooth.FEM<-function(locations = NULL, observations, FEMbasis,
       g = g,
       z_hat = -1,
       beta = beta,
+      beta_sd = beta_sd,
       rmse = -1,
       estimated_sd=stderr
     )
@@ -877,6 +886,8 @@ smooth.FEM<-function(locations = NULL, observations, FEMbasis,
     }
     class(bary.locations) = "bary.locations"
 
+    if(!is.null(covariates)){
+    }
     # Make Functional objects object
     fit.FEM  = FEM(solution$f, FEMbasis)
     PDEmisfit.FEM = FEM(solution$g, FEMbasis)

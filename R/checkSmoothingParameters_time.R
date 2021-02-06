@@ -272,9 +272,9 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations = N
       {
         if(nrow(locations) != nrow(observations))
           stop("'locations' and 'observations' have incompatible size;")
-        if(!is.null(IC))
-          if((nrow(time_mesh)-1) != ncol(observations))
-            stop("'time_mesh' and 'observations' have incompatible size;")
+        #if(!is.null(IC))
+        #  if((nrow(time_mesh)-1) != ncol(observations))
+        #    stop("'time_mesh' and 'observations' have incompatible size;")
       }
       if(!FLAG_PARABOLIC)
       {
@@ -333,15 +333,15 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations = N
   # IC
   if (FLAG_PARABOLIC==TRUE && is.null(IC))
   {
-    if (!is.null(time_mesh))
-    {
-      if(ncol(observations)!=nrow(time_mesh))
-        stop("IC is required for parabolic smoothing")
-      else
-        message("IC is required for parabolic smoothing, will be estimated from the first column of 'observations'")
-    }
-    else
-      message("IC is required for parabolic smoothing, will be estimated from the first column of 'observations'")
+    #if (!is.null(time_mesh))
+    #{
+    #  if(ncol(observations)!=nrow(time_mesh))
+    #    stop("IC is required for parabolic smoothing")
+    #  else
+    #    message("IC is required for parabolic smoothing, will be estimated from the first column of 'observations'")
+    #}
+    #else
+    #  message("IC is required for parabolic smoothing, will be estimated from the first column of 'observations'")
   }
   if(!is.null(IC))
   {

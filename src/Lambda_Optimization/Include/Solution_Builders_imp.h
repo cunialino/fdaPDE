@@ -1,6 +1,8 @@
 #ifndef __SOLUTION_BUILDERS_IMP_H__
 #define __SOLUTION_BUILDERS_IMP_H__
 
+#include "Solution_Builders.h"
+
 template <typename InputHandler, UInt ORDER, UInt mydim, UInt ndim>
 SEXP Solution_Builders::build_solution_plain_regression(
     const MatrixXr &solution, const output_Data &output,
@@ -9,12 +11,17 @@ SEXP Solution_Builders::build_solution_plain_regression(
     // ---- Preparation ----
     // Prepare regresion coefficients space
     MatrixXv beta;
+    MatrixXv beta_sd;
     if (regressionData.getCovariates()->rows() == 0) {
         beta.resize(1, 1);
         beta(0, 0).resize(1);
         beta(0, 0)(0) = 10e20;
+        beta_sd.resize(1, 1);
+        beta_sd(0, 0).resize(1);
+        beta_sd(0, 0)(0) = 10e20;
     } else {
         beta = output.betas;
+        beta_sd = output.betas_sd;
     }
 
     // Define string for optimzation method
@@ -205,6 +212,13 @@ SEXP Solution_Builders::build_solution_plain_regression(
             rans11[i + barycenters.rows() * j] = barycenters(i, j);
     }
 
+    SET_VECTOR_ELT(result, 22,
+                   Rf_allocMatrix(REALSXP, beta_sd(0).size(), beta_sd.size()));
+    Real *rans12 = REAL(VECTOR_ELT(result, 22));
+    for (UInt j = 0; j < beta_sd.size(); j++) {
+        for (UInt i = 0; i < beta_sd(0).size(); i++)
+            rans4[i + beta_sd(0).size() * j] = beta_sd(j)(i);
+    }
     UNPROTECT(1);
 
     return (result);
