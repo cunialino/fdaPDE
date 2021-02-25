@@ -503,7 +503,7 @@ smooth.FEM.time <- function(
 
 
     if (family == "gaussian") {
-        ICindx = 13
+        ICindx = 14
         N = nrow(FEMbasis$mesh$nodes)
         M = ifelse(FLAG_PARABOLIC, length(time_mesh) - 1, length(time_mesh) + 2)
         if (is.null(IC) && FLAG_PARABOLIC) IC = bigsol[[ICindx]]$coeff
@@ -513,6 +513,8 @@ smooth.FEM.time <- function(
                 for (j in 1:length(lambdaT))
                     f[, i, j] =
                         c(IC, bigsol[[1]][1:(N * M), i + (j - 1) * length(lambdaS)])
+
+
         } else
             f = array(data = bigsol[[1]][1:(N * M), ],
                       dim = c(N * M, length(lambdaS), length(lambdaT)))
