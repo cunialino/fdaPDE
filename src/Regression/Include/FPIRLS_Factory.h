@@ -50,6 +50,10 @@ class FPIRLSfactory
 			scale_parameter_flag = true;
 		}
 
+		if( (family=="Gaussian") && scale_parameter<0){
+			scale_parameter_flag = true;
+		}
+
 		if(family=="binomial"){
 		    return make_unique<FPIRLS_Bernoulli<InputHandler, ORDER,  mydim, ndim>>(mesh, inputData, optimizationData, mu0);
 		}else if(family=="poisson"){
@@ -58,7 +62,10 @@ class FPIRLSfactory
 		    return make_unique<FPIRLS_Exponential<InputHandler, ORDER,  mydim, ndim>>(mesh, inputData, optimizationData, mu0);
 		}else if(family=="gamma"){
 		    return make_unique<FPIRLS_Gamma<InputHandler, ORDER,  mydim, ndim>>(mesh,inputData, optimizationData, mu0, scale_parameter, scale_parameter_flag);
+		}else if(family=="Gaussian"){
+		    return make_unique<FPIRLS_Gaussian<InputHandler, ORDER,  mydim, ndim>>(mesh,inputData, optimizationData, mu0, scale_parameter, scale_parameter_flag);
 		}
+
 
 		return std::unique_ptr<FPIRLS<InputHandler, ORDER,  mydim,  ndim>>(nullptr);
 	}
@@ -91,6 +98,10 @@ class FPIRLSfactory
 			scale_parameter_flag = true;
 		}
 
+		if( (family=="Gaussian") && scale_parameter<0){
+			scale_parameter_flag = true;
+		}
+
 		if(family=="binomial"){
 		    return make_unique<FPIRLS_Bernoulli<InputHandler, ORDER,  mydim, ndim>>(mesh, mesh_time, inputData, optimizationData, mu0);
 		}else if(family=="poisson"){
@@ -99,7 +110,9 @@ class FPIRLSfactory
 		    return make_unique<FPIRLS_Exponential<InputHandler, ORDER,  mydim, ndim>>(mesh, mesh_time, inputData, optimizationData, mu0);
 		}else if(family=="gamma"){
 		    return make_unique<FPIRLS_Gamma<InputHandler, ORDER,  mydim, ndim>>(mesh, mesh_time, inputData, optimizationData, mu0, scale_parameter, scale_parameter_flag);
-		}
+        }else if(family=="Gaussian"){
+            return make_unique<FPIRLS_Gaussian<InputHandler, ORDER,  mydim, ndim>>(mesh, mesh_time, inputData, optimizationData, mu0, scale_parameter, scale_parameter_flag);
+        }
 
 		return std::unique_ptr<FPIRLS<InputHandler, ORDER,  mydim,  ndim>>(nullptr);
 	}

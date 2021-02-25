@@ -264,6 +264,32 @@ class FPIRLS_Gamma : public FPIRLS <InputHandler, ORDER, mydim, ndim> {
 
 };
 
+//! @brief A class that specify the Gaussian distribution for the FPIRLS class. This is used to check if its a bug or a problem of the problem
+template <typename InputHandler, UInt ORDER, UInt mydim, UInt ndim>
+class FPIRLS_Gaussian : public FPIRLS <InputHandler, ORDER, mydim, ndim> {
+
+    protected:
+
+      inline Real link(const Real& mu)const{ return mu ; }
+
+      inline Real link_deriv(const Real& mu)const{ return 1; }
+
+      inline Real inv_link(const Real& theta)const{ return theta; }
+
+      inline Real var_function(const Real& mu)const{ return 1 ;}
+
+      inline Real dev_function(const Real&mu, const Real& x)const{ 
+          return (mu-x)*(mu-x); }
+
+    public:
+
+    FPIRLS_Gaussian(const MeshHandler<ORDER,mydim,ndim>& mesh, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
+    FPIRLS_Gaussian(const MeshHandler<ORDER,mydim,ndim>& mesh, const std::vector<Real> & mesh_time, InputHandler& inputData, OptimizationData & optimizationData, VectorXr mu0, bool scale_parameter_flag, Real scale_param):
+      FPIRLS<InputHandler, ORDER, mydim, ndim>(mesh, mesh_time, inputData, optimizationData, mu0, scale_parameter_flag, scale_param){};
+
+};
+
 
 
 #include "FPIRLS_imp.h"

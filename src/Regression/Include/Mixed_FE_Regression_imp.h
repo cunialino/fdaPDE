@@ -11,23 +11,26 @@
 #include "R_ext/Print.h"
 
 // Get standard deviation of betas
-
-template <typename InputHandler>
-void MixedFERegressionBase<
-InputHandler>::evalBetaSd(UInt lambdaSind, UInt lambdaTind, Real lambdaS, Real lambdaT){
-    UInt nnodes = N_ * M_;
-    UInt nlocations = regressionData_.getNumberofObservations();
-
-    MatrixXr X1;
-    MatrixXr Id(nlocations, nlocations);
-    Id.setIdentity();
-    if (regressionData_.getNumberOfRegions() == 0) {  //pointwise data
-        X1 = psi_.transpose() * LeftMultiplybyQ(Id);
-    } else {  //areal data
-        X1 = psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(Id);
+// This funtion is intened to be used in the skeletons, after you already know
+// which is the best lambda and if there are or there are not covariates
+template<typename InputHandler>
+MatrixXr MixedFERegressionBase<InputHandler>::computeCovsSd(Real lambdaS, Real lambdaT){
+    // We dont want to do this for all lambdas, just fot the best one and
+    // moreover we want to do this at FPIRLS convergence if we're in GAM
+    // settings, hence we re-build the matrices, so everything is ready for
+    // computations 
+    if (!regressionData_.isSpaceTime()) {
+        buildSystemMatrix(lambdaS);
+    } else {
+        buildSystemMatrix(lambdaS, lambdaT);
     }
-
-    if (isRcomputed_ == false) {
+    MatrixXr NW = this->DMat_;
+    MatrixXr W(*(this->regressionData_.getCovariates()));
+    if(regressionData_.isSpaceTime() && not regressionData_.getFlagParabolic()){
+        NW += lambdaT*this->Ptk_;
+    }
+    if(not this->isRcomputed_){
+        UInt nnodes = N_ * M_;
         isRcomputed_ = true;
         //take R0 from the final matrix since it has already applied the dirichlet boundary conditions
         SpMat R0 = matrixNoCov_.bottomRightCorner(nnodes, nnodes) / lambdaS;
@@ -39,68 +42,25 @@ InputHandler>::evalBetaSd(UInt lambdaSind, UInt lambdaTind, Real lambdaS, Real l
             R_ = R1_.transpose() * X2;
         }
     }
-
-    MatrixXr P;
-    MatrixXr X3 = X1;
-
-    //define the penalization matrix: note that for separable smoothin should be P=lambdaS*Psk+lambdaT*Ptk
-    // but the second term has been added to X1 for dirichlet boundary conditions
-    if (regressionData_.isSpaceTime() && regressionData_.getFlagParabolic()) {
-        SpMat X2 = R1_ + lambdaT * LR0k_;
-        P = lambdaS * X2.transpose() * R0dec_.solve(X2);
-    } else {
-        P = lambdaS * R_;
+    if(not this->isWTWfactorized_){
+            if (this->regressionData_.getWeightsMatrix()->size() == 0)
+                WTW_.compute(W.transpose() * W);
+            else
+                WTW_.compute(W.transpose() * this->regressionData_.getWeightsMatrix()->asDiagonal() * W);
+            isWTWfactorized_ =
+                true;  // Flag to no repeat the operation next time
     }
-
-    if (regressionData_.isSpaceTime() && !regressionData_.getFlagParabolic())
-        X3 += lambdaT * Ptk_;
-
-    //impose dirichlet boundary conditions if needed
-    if (regressionData_.getDirichletIndices()->size() != 0) {
-        const std::vector<UInt>* bc_indices =
-            regressionData_.getDirichletIndices();
-        UInt nbc_indices = bc_indices->size();
-
-        Real pen = 10e20;
-        for (UInt i = 0; i < nbc_indices; i++) {
-            UInt id = (*bc_indices)[i];
-            X3(id, id) = pen;
-        }
-    }
-
-    //Ma qui ancora, siamo sicuri?
-    X3 -= P;
-    Eigen::PartialPivLU<MatrixXr> Dsolver(X3);
-
-    MatrixXr rhs = psi_*LeftMultiplybyQ(Id);
-    std::cerr << "ci siamo" << std::endl;
-    MatrixXr S = Dsolver.solve(rhs);
-    std::cerr << "ci siamo" << std::endl;
-    S *= psi_;
-    std::cerr << "ci siamo" << std::endl;
-    MatrixXr W(*(this->regressionData_.getCovariates()));
-    std::cerr << "ci siamo" << std::endl;
-    if(not isWTWfactorized_){
-        const VectorXr* weights = this->regressionData_.getWeightsMatrix();    
-        if (weights->size() == 0)
-            WTW_.compute(W.transpose() * W);
-        else
-            WTW_.compute(W.transpose() * weights->asDiagonal() * W);
-        isWTWfactorized_ =
-            true;  // Flag to no repeat the operation next time
-    }
-    S = WTW_.solve(W.transpose() * S);
-    if(lambdaSind == 0){
-        std::cerr << "Matrix S computed" << std::endl;
-    }
-    Id.resize(W.rows(), W.rows());
-    Id.setIdentity();
-    MatrixXr WTW_1 = WTW_.solve(Id);
-    if(lambdaSind == 0){
-        std::cerr << "startig" << std::endl;
-    }
-    _beta_sd(lambdaSind, lambdaTind) = WTW_1 + S * S.transpose();
-}  //adds boundary conditions to all
+    
+    MatrixXr invWTW = WTW_.inverse();
+    //Not really sure about the - sign, but in copute exact dof it's done this
+    //way
+    Eigen::PartialPivLU<MatrixXr> solver(NW-lambdaS*this->R_);
+    MatrixXr tmp = solver.solve(tmp);
+    MatrixXr S = psi_*tmp;
+    tmp = S;
+    S = invWTW + invWTW*W.transpose()*tmp*tmp.transpose()*W*invWTW;
+    return S;
+}
 
 //----------------------------------------------------------------------------//
 // Dirichlet BC
@@ -601,24 +561,19 @@ void MixedFERegressionBase<InputHandler>::getRightHandData(
                 auto index_i = (*(regressionData_.getObservationsIndices()))[i];
                 rightHandData(index_i) = tmp(i);
             }
-        } /*else if (
+        } else if (
             regressionData_.isLocationsByNodes() &&
             regressionData_.isSpaceTime() &&
             regressionData_
                 .getFlagParabolic()) {  // Regressionbynodes + parabolic --> Psi^t*z [simplified Psi]
+            //We need this for GAM (see one of the previous comments)
             VectorXr tmp = LeftMultiplybyQ(*obsp);
             for (UInt i = 0; i < nlocations;
                  ++i) {  // Simplified multiplication by Psi^t
                 auto index_i = (*(regressionData_.getObservationsIndices()))[i];
                 rightHandData(index_i) = tmp(i);
             }
-             now also gam is space time so I still need to call leftmultbyQ, maybe it can be merged into the above if block
-			for(UInt i=0; i<regressionData_.getObservationsIndices()->size(); ++i)
-			{ // Simplified multiplication by Psi^t
-				auto index_i = (*(regressionData_.getObservationsIndices()))[i];
-				rightHandData(index_i) = (*obsp)[index_i];
-			}
-        }*/ else if (
+        } else if (
             regressionData_.getNumberOfRegions() ==
             0) {  // Generic pointwise pata, no optimization allowed --> Psi^t*z [or Psi^t*P*z in GAM]
             // LeftMultiplybyQ does nothing since Q==I unless in GAM [where multipliction by Q also involves P (weight matrix)]
@@ -629,8 +584,8 @@ void MixedFERegressionBase<InputHandler>::getRightHandData(
                 psi_.transpose() * A_.asDiagonal() * LeftMultiplybyQ(*obsp);
         }
     } else if (
-        regressionData_.getNumberOfRegions() ==
-        0) {  // With covariates, pointwise data, no optimization --> Psi^t*Q*z [in GAM Q=Q(P)]
+        regressionData_.getNumberOfRegions() == 0) { 
+        // With covariates, pointwise data, no optimization --> Psi^t*Q*z [in GAM Q=Q(P)]
         rightHandData = psi_.transpose() * LeftMultiplybyQ(*obsp);
     } else {  // With covariates, areal data, no optimization --> Psi^t*A*Q*z [in GAM Q=Q(P)]
         rightHandData =
@@ -1000,8 +955,9 @@ void MixedFERegressionBase<InputHandler>::preapply(
         isR0Computed = true;
     }
 
-    if (this->isSpaceVarying) {
+    if (this->isSpaceVarying && not isFTComputed) {
         Assembler::forcingTerm(mesh_, fe, u, rhs_ft_correction_);
+        isFTComputed = true;
     }
 
     if (regressionData_.isSpaceTime() && not isSPComputed) {
@@ -1095,7 +1051,6 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply(void) {
     this->_solution.resize(sizeLambdaS, sizeLambdaT);
     this->_dof.resize(sizeLambdaS, sizeLambdaT);
     this->_GCV.resize(sizeLambdaS, sizeLambdaT);
-    this->_beta_sd.resize(sizeLambdaS, sizeLambdaT);
     if (regressionData_.getCovariates()->rows() != 0) {
         this->_beta.resize(sizeLambdaS, sizeLambdaT);
     }
@@ -1127,8 +1082,8 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply(void) {
 
             // Right-hand side correction for space varying PDEs
             if (this->isSpaceVarying) {
-                _rightHandSide.bottomRows(nnodes) =
-                    (-lambdaS) * rhs_ft_correction_;
+                VectorXr tmp = (-lambdaS) * rhs_ft_correction_;
+                _rightHandSide.bottomRows(nnodes) = tmp;
             }
 
             // Right-hand side correction for initial condition in parabolic case
@@ -1182,7 +1137,6 @@ MatrixXv MixedFERegressionBase<InputHandler>::apply(void) {
                         (*obsp - psi_ * _solution(s, t).topRows(psi_.cols()));
                 }
                 _beta(s, t) = WTW_.solve(beta_rhs);
-                evalBetaSd(s, t, lambdaS, lambdaT);
             }
         }
     }

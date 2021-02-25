@@ -252,6 +252,7 @@ eval.FEM.time <- function(FEM.time, locations = NULL, time.instants = NULL, spac
         space.time.locations=cbind(space.time.locations,rep(locations[,3],length(time.instants)))
     }else{
       space.time.locations <- matrix(nrow=0, ncol=1)
+      time_locations <- rep(time.instants, each=nrow(incidence_matrix))
     }
   }else{
     if(dim(space.time.locations)[2]<3)

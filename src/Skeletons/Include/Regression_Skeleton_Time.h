@@ -30,20 +30,29 @@ SEXP regression_skeleton_time(InputHandler & regressionData, OptimizationData & 
 	UInt bestLambdaS = optimizationData.get_best_lambda_S();
 	UInt bestLambdaT = optimizationData.get_best_lambda_T();
 	MatrixXv beta;
+    MatrixXr CovsS;
 	if(regressionData.getCovariates()->rows()==0)
 	{
 		beta.resize(1,1);
 		beta(0,0).resize(1);
 		beta(0,0)(0) = 10e20;
+        CovsS.resize(1, 1);
+        CovsS(0, 0) = 10e20;
 	}
-	else
-		 beta = regression.getBeta();
+    else{
+		beta = regression.getBeta();
+        Real bestLambdaSval = ( optimizationData.get_lambda_S() )[bestLambdaS];
+        Real bestLambdaTval = ( optimizationData.get_lambda_T() )[bestLambdaT];
+        CovsS.resize(1, 1);
+        CovsS(0, 0) = 10e20;
+        //CovsS = regression.computeCovsSd(bestLambdaSval, bestLambdaTval);
+    }
 
 	const MatrixXr & barycenters = regression.getBarycenters();
 	const VectorXi & elementIds = regression.getElementIds();
 	//!Copy result in R memory
 	SEXP result = NILSXP;
-	result = PROTECT(Rf_allocVector(VECSXP, 5+5+2));
+	result = PROTECT(Rf_allocVector(VECSXP, 5+5+2+1));
 	SET_VECTOR_ELT(result, 0, Rf_allocMatrix(REALSXP, solution(0,0).size(), solution.rows()*solution.cols()));
 	SET_VECTOR_ELT(result, 1, Rf_allocMatrix(REALSXP, dof.rows(), dof.cols()));
 	SET_VECTOR_ELT(result, 2, Rf_allocMatrix(REALSXP, GCV.rows(), GCV.cols()));
@@ -142,6 +151,15 @@ SEXP regression_skeleton_time(InputHandler & regressionData, OptimizationData & 
 	{
 		for(UInt i = 0; i < barycenters.rows(); i++)
 			rans11[i + barycenters.rows()*j] = barycenters(i,j);
+	}
+	SET_VECTOR_ELT(result, 12, Rf_allocMatrix(REALSXP, CovsS.rows(), CovsS.cols())); //barycenter information (matrix)
+	Real *rans12 = REAL(VECTOR_ELT(result, 12));
+	for(UInt i = 0; i < CovsS.rows(); i++)
+	{
+		for(UInt j = 0; j < CovsS.cols(); j++)
+		{
+            rans12[i + CovsS.rows()*j] = CovsS.coeff(i,j);
+		}
 	}
 
 	UNPROTECT(1);

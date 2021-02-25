@@ -36,6 +36,10 @@ runsim <- function(set, whichone = c(T, T, T, T), sim) {
     data <- field +
       rnorm(nrow(set$space_time_locations), mean = 0, sd = set$scale)
   }
+  if (set$FAMILY == "Gaussian") {
+    data <- field +
+      rnorm(nrow(set$space_time_locations), mean = 0, sd = set$scale)
+  }
   if (set$FAMILY == "poisson") {
     data <- rpois(n = nrow(set$space_time_locations), lambda = exp(field))
   }
@@ -57,6 +61,7 @@ runsim <- function(set, whichone = c(T, T, T, T), sim) {
   if (sim == 1) {
     set$data <<- data
   }
+
   set$desmat[[sim]] <<- desmat
   mode(data) <- "double"
   if (plotF) {
@@ -84,7 +89,7 @@ runsim <- function(set, whichone = c(T, T, T, T), sim) {
       scale.param = NULL, FLAG_PARABOLIC = T,
       threshold.FPIRLS = 10^-6, PDE_parameters
       = set$PDE_parameters,
-      GCV.inflation.factor = set$inflfac
+      GCV.inflation.factor = set$inflfac, DOF.stochastic.seed=120, IC=set$IC
     )
     reslist$timeGSRtPDE <- Sys.time() - tt
     print(reslist$timeGSRtPDE)
@@ -115,7 +120,7 @@ runsim <- function(set, whichone = c(T, T, T, T), sim) {
       family = set$FAMILY, mu0 = NULL,
       scale.param = NULL, FLAG_PARABOLIC = F,
       threshold.FPIRLS = 10^-6, PDE_parameters
-      = set$PDE_parameters, BC = set$BC
+      = NULL, BC = set$BC
     )
     reslist$timeGSRPDE <- Sys.time() - tt
     print(reslist$timeGSRPDE)
@@ -142,7 +147,7 @@ runsim <- function(set, whichone = c(T, T, T, T), sim) {
     } else {
       reslist$TPS <- gam(
         TPSform,
-        method = "GCV.Cp", family = set$FAMILY, data = mgcvDat
+        method = "GCV.Cp", family = tolower(set$FAMILY), data = mgcvDat
       )
     }
     reslist$timeTPS <- Sys.time() - tt
@@ -175,7 +180,7 @@ runsim <- function(set, whichone = c(T, T, T, T), sim) {
       )
     } else {
       reslist$SOAP <-
-        gam(SOAPform, knots = set$knots, family = set$FAMILY, data = mgcvDatS)
+        gam(SOAPform, knots = set$knots, family = tolower(set$FAMILY), data = mgcvDatS)
     }
     reslist$timeSOAP <- Sys.time() - tt
     print(reslist$timeSOAP)
@@ -198,18 +203,16 @@ eval.rmse <- function(sols, set, covariates = F) {
 
   true <- set$f(set$evalGrid$x, set$evalGrid$y, set$evalGrid$t, set$FAMILY)
 
-  tt <- Sys.time()
   if (!is.null(sols$GSRtPDE)) {
-    gsrpde <- eval.FEM.time(
+    gsrtpde <- eval.FEM.time(
       sols$GSRtPDE$fit.FEM.time,
       space.time.locations = set$evalGrid[, 1:3],
       lambdaS = sols$GSRtPDE$bestlambda[1],
       lambdaT = sols$GSRtPDE$bestlambda[2]
     )
   }
-  print(Sys.time() - tt)
   if (!is.null(sols$GSRPDE)) {
-    gsrtpde <- eval.FEM.time(
+    gsrpde <- eval.FEM.time(
       sols$GSRPDE$fit.FEM.time,
       space.time.locations = set$evalGrid[, 1:3],
       lambdaS = sols$GSRPDE$bestlambda[1],
@@ -236,14 +239,13 @@ eval.rmse <- function(sols, set, covariates = F) {
   # "lpmatrix")%*%coef(sols$SOAP)
 
   RMSE <- NULL
-
   if (!is.null(sols$GSRtPDE)) {
-    RMSE$GSRtPDE <- sqrt(mean((true - gsrpde)^2, na.rm = T))
+    RMSE$GSRtPDE <- sqrt(mean((true - gsrtpde)^2, na.rm = T))
   }
   if (!is.null(sols$GSRPDE)) {
-    RMSE$GSRPDE <- sqrt(mean((true - gsrtpde)^2, na.rm = T))
+    RMSE$GSRPDE <- sqrt(mean((true - gsrpde)^2, na.rm = T))
   }
-  if (!is.null(sols$TPS)) RMSE$TPS <- sqrt(mean((true - tps)^2, na.rm = T))
-  if (!is.null(sols$SOAP)) RMSE$SOAP <- sqrt(mean((true - soap)^2, na.rm = T))
+  if (!is.null(sols$TPS)) RMSE$TPS <- sqrt(mean((true - as.vector(tps))^2, na.rm = T))
+  if (!is.null(sols$SOAP)) RMSE$SOAP <- sqrt(mean((true - as.vector(soap))^2, na.rm = T))
   return(RMSE)
 }

@@ -5,6 +5,8 @@
 #include "../../Lambda_Optimization/Include/Optimization_Data.h"
 #include "../../Mesh/Include/Mesh.h"
 #include "../../Regression/Include/Mixed_FE_Regression.h"
+#include "../../Regression/Include/FPIRLS.h"
+#include "../../Regression/Include/FPIRLS_Factory.h"
 
 template <typename InputHandler, UInt ORDER, UInt mydim, UInt ndim>
 SEXP GAM_skeleton_time(InputHandler &GAMData,

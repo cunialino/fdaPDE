@@ -11,17 +11,16 @@ SEXP Solution_Builders::build_solution_plain_regression(
     // ---- Preparation ----
     // Prepare regresion coefficients space
     MatrixXv beta;
-    MatrixXv beta_sd;
+    MatrixXr CovsS;
     if (regressionData.getCovariates()->rows() == 0) {
         beta.resize(1, 1);
         beta(0, 0).resize(1);
         beta(0, 0)(0) = 10e20;
-        beta_sd.resize(1, 1);
-        beta_sd(0, 0).resize(1);
-        beta_sd(0, 0)(0) = 10e20;
+        CovsS.resize(1, 1);
+        CovsS(0, 0) = 10e20;
     } else {
         beta = output.betas;
-        beta_sd = output.betas_sd;
+        CovsS = output.CovsS;
     }
 
     // Define string for optimzation method
@@ -41,7 +40,7 @@ SEXP Solution_Builders::build_solution_plain_regression(
     SEXP result =
         NILSXP;  // Define emty term --> never pass to R empty or is "R session aborted"
     result =
-        PROTECT(Rf_allocVector(VECSXP, 22));  // 22 elements to be allocated
+        PROTECT(Rf_allocVector(VECSXP, 23));  // 22 elements to be allocated + CovsS
 
     // Add solution matrix in position 0
     SET_VECTOR_ELT(result, 0,
@@ -211,14 +210,16 @@ SEXP Solution_Builders::build_solution_plain_regression(
         for (UInt i = 0; i < barycenters.rows(); i++)
             rans11[i + barycenters.rows() * j] = barycenters(i, j);
     }
+	SET_VECTOR_ELT(result, 22, Rf_allocMatrix(REALSXP, CovsS.rows(), CovsS.cols())); //barycenter information (matrix)
+	Real *rans12 = REAL(VECTOR_ELT(result, 22));
+	for(UInt i = 0; i < CovsS.rows(); i++)
+	{
+		for(UInt j = 0; j < CovsS.cols(); j++)
+		{
+            rans12[i + CovsS.rows()*j] = CovsS.coeff(i,j);
+		}
+	}
 
-    SET_VECTOR_ELT(result, 22,
-                   Rf_allocMatrix(REALSXP, beta_sd(0).size(), beta_sd.size()));
-    Real *rans12 = REAL(VECTOR_ELT(result, 22));
-    for (UInt j = 0; j < beta_sd.size(); j++) {
-        for (UInt i = 0; i < beta_sd(0).size(); i++)
-            rans4[i + beta_sd(0).size() * j] = beta_sd(j)(i);
-    }
     UNPROTECT(1);
 
     return (result);

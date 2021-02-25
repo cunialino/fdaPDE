@@ -38,17 +38,17 @@ fC <- function(x, y, t, FAMILY, exclude = T) {
   res <- numeric(length = length(x))
   for (i in 1:length(x)) {
     if (x[i] >= 0 && y[i] > 0) {
-      res[i] <- exp(-t[i]) * (0.25 * pi + x[i]) + (y[i] - 0.5)^2
+      res[i] <- cos(-t[i]) * (0.25 * pi + x[i]) + (y[i] - 0.5)^2
     }
     if (x[i] >= 0 && y[i] <= 0) {
-      res[i] <- exp(-2 * t[i]) * (-0.25 * pi - x[i]) + (-y[i] - 0.5)^2
+      res[i] <- cos(-2 * t[i]) * (-0.25 * pi - x[i]) + (-y[i] - 0.5)^2
     }
     if (x[i] < 0 && y[i] > 0) {
-      res[i] <- exp(-t[i]) * (-atan(y[i] / x[i]) * 0.5) +
+      res[i] <- cos(-t[i]) * (-atan(y[i] / x[i]) * 0.5) +
         (sqrt(x[i]^2 + y[i]^2) - 0.5)^2 * K[i]
     }
     if (x[i] < 0 && y[i] <= 0) {
-      res[i] <- exp(-2 * t[i]) * (-atan(y[i] / x[i]) * 0.5) +
+      res[i] <- cos(-2 * t[i]) * (-atan(y[i] / x[i]) * 0.5) +
         (sqrt(x[i]^2 + y[i]^2) - 0.5)^2 * K[i]
     }
     res[i] <- -1 / a * (res[i] + b)
@@ -66,6 +66,9 @@ inv.link <- function(mu, FAMILY) {
     return(plogis(mu))
   }
   if (FAMILY == "gaussian") {
+    return(mu)
+  }
+  if (FAMILY == "Gaussian") {
     return(mu)
   }
   if (FAMILY == "poisson") {

@@ -698,11 +698,9 @@ smooth.FEM<-function(locations = NULL, observations, FEMbasis,
     }
     if(!is.null(covariates))
     {
-      beta_sd = matrix(data=bigsol[[23]],nrow=ncol(covariates),ncol=length(lambda))
   	}
     else
     {
-      beta_sd = NULL
     }
 
     # Save information of Tree Mesh
@@ -755,7 +753,6 @@ smooth.FEM<-function(locations = NULL, observations, FEMbasis,
       g = g,
       z_hat = -1,
       beta = beta,
-      beta_sd = beta_sd,
       rmse = -1,
       estimated_sd=stderr
     )
@@ -823,7 +820,7 @@ smooth.FEM<-function(locations = NULL, observations, FEMbasis,
       z_hat = bigsol[[2]],
       beta = beta,
       rmse = bigsol[[3]],
-      estimated_sd=sd
+      estimated_sd=sd, CovsS=bigsol[[23]]
     )
     term = bigsol[[9]]
     ot = bigsol[[10]]

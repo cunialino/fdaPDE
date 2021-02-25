@@ -14,7 +14,7 @@ plot.settings <- function(data, set, file) {
     ParamMats = NULL
     times <- sort(
                   set$time_locations[seq(1, length(set$time_locations), length.out = 5)])
-    data <- data[, seq(1, length(set$time_locations), length.out = 5)]
+    data <- data[, seq(1, set$m, length.out = 5)]
     evalGrid <- expand.grid(times, set$xvec, set$yvec)
     evalGrid <- evalGrid[order(evalGrid[, 1]), ]
     names(evalGrid) <- c("t", "x", "y")
@@ -143,24 +143,6 @@ for (j in seq(1, 5)) {
     if (j == 1) {
         mtext("True Field", font = 2)
     }
-    if (whichones[1]) {
-        image(set$xvec, set$yvec, Mats[[j]], col = fieldPal, xlab = "", ylab = "",
-              zlim = zl, axes = F)
-        contour(set$xvec, set$yvec, Mats[[j]], add = TRUE,
-                zlim = zl, levels = levs)
-        if (j == 1) {
-            mtext("GSRt-PDE", font = 2)
-        }
-    }
-    if (whichones[2]) {
-        image(set$xvec, set$yvec, MatsSep[[j]], col = fieldPal, xlab = "",
-              ylab = "", zlim = zl, axes = F)
-        contour(set$xvec, set$yvec, MatsSep[[j]], add = TRUE,
-                zlim = zl, levels = levs)
-        if (j == 1) {
-            mtext("GSR-PDE", font = 2)
-        }
-    }
     if (whichones[3]) {
         image(set$xvec, set$yvec, TPSMats[[j]], col = fieldPal, xlab = "",
               ylab = "", zlim = zl, axes = F)
@@ -177,6 +159,24 @@ for (j in seq(1, 5)) {
                 zlim = zl, levels = levs)
         if (j == 1) {
             mtext("SOAP", font = 2)
+        }
+    }
+    if (whichones[1]) {
+        image(set$xvec, set$yvec, Mats[[j]], col = fieldPal, xlab = "", ylab = "",
+              zlim = zl, axes = F)
+        contour(set$xvec, set$yvec, Mats[[j]], add = TRUE,
+                zlim = zl, levels = levs)
+        if (j == 1) {
+            mtext("GSRt-PDE", font = 2)
+        }
+    }
+    if (whichones[2]) {
+        image(set$xvec, set$yvec, MatsSep[[j]], col = fieldPal, xlab = "",
+              ylab = "", zlim = zl, axes = F)
+        contour(set$xvec, set$yvec, MatsSep[[j]], add = TRUE,
+                zlim = zl, levels = levs)
+        if (j == 1) {
+            mtext("GSR-PDE", font = 2)
         }
     }
 }

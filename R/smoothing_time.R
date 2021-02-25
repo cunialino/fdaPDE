@@ -328,7 +328,7 @@ smooth.FEM.time <- function(
     }
 
     # FAMILY CHECK
-    family_admit = c("binomial", "exponential", "gamma", "poisson", "gaussian")
+    family_admit = c("binomial", "exponential", "gamma", "poisson", "gaussian", "Gaussian")
     if (sum(family == family_admit) == 0) {
         stop(
              "'family' parameter required.\nCheck if it is one of the following: binomial, exponential, gamma, poisson, gaussian")
@@ -663,8 +663,10 @@ smooth.FEM.time <- function(
         nm <- length(observations)
         fn.eval = array(dim = c(nm, length(lambdaS), length(lambdaT)))
         if(FLAG_PARABOLIC){
-            ICfn.eval = bigsol[[ICindx+4]][, bigsol[[ICindx + 1]]]
-            print(paste("nm: ", nm, " length IC fn.eval=", length(ICfn.eval)))
+            if(!is.null(bigsol[[ICindx]]))
+                ICfn.eval = bigsol[[ICindx+4]][, bigsol[[ICindx + 1]]]
+            else
+                ICfn.eval = NULL
             nm <- nm - length(ICfn.eval)
             for (i in 1:length(lambdaS))
                 for (j in 1:length(lambdaT))

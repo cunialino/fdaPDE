@@ -16,13 +16,14 @@ set <- settings(T)
 set$betas <- c(-.2, .3)
 set$scale <- 0.1
 
-fams <- c("poisson")
+fams <- c("gamma", "poisson", "exponential")
 set$time_locations <- set$time_locations * pi
 set$time_mesh <- set$time_mesh * pi
 set$space_time_locations[, 1] <- set$space_time_locations[, 1] * pi
 set$evalGrid$t <- set$evalGrid$t * pi
-set$mesh <- refine.mesh.2D(set$mesh, maximum_area = 0.025, minimum_angle = 30)
-set$NSIM <- 1
+set$NSIM <- 25
+set$inflfac <- 1
+set$maxiters <- 15
 for (fam in fams) {
   set$FAMILY <- fam
 

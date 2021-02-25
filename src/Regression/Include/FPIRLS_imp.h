@@ -144,13 +144,12 @@ void FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::update_solution(
     // performs step (2) of PIRLS. It requires pseudo data after step(1) and mimic regression skeleton behaviour
 
     // Here we have to solve a weighted regression problem.
-    regression_
-        .recomputeWTW();  // at each iteration of FPIRLS W is updated, so WTW has to be recomputed as well.
+    // at each iteration of FPIRLS W is updated, so WTW has to be recomputed as well.
+    regression_ .recomputeWTW();  
     regression_.preapply(this->mesh_);
     regression_.apply();
-    const SpMat* Psi =
-        regression_
-            .getpsi_();  // get Psi matrix. It is used for the computation of fn_hat.
+    // get Psi matrix. It is used for the computation of fn_hat.
+    const SpMat* Psi = regression_.getpsi_();  
 
     // get the solutions from the regression object.
     _solution(lambdaS_index, lambdaT_index) = regression_.getSolution()(0, 0);
@@ -204,8 +203,9 @@ void FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::compute_Weights() {
 
     /* V(Y) = b''(theta) = 1/g'(mu) ==> W = 1/(g'(mu)^2*V(mu)) = 1/g'(mu):  <01-10-20, Elia Cunial> */
     for (auto i = 0; i < mu_.size(); i++) {
-        WeightsMatrix_(i) = 1 / G_(i);
+        WeightsMatrix_(i) =1/(std::pow(G_(i),2)*(var_function( mu_(i))));
     }
+    
 }
 
 template <typename InputHandler, UInt ORDER, UInt mydim, UInt ndim>
@@ -239,7 +239,7 @@ bool FPIRLS_Base<InputHandler, ORDER, mydim, ndim>::stopping_criterion(
     if (n_iterations(lambdaS_index, lambdaT_index) > 0 &&
         regression_.getDecInfo() != 0) {
         do_stop_by_exception = true;
-        std::cout << "For lambda_index=( " << lambdaS_index << ", "
+        std::cout << "Iter=" << n_iterations(lambdaS_index, lambdaT_index) << " for lambda_index=( " << lambdaS_index << ", "
                   << lambdaT_index
                   << ") eigen decomposition error: " << regression_.getDecInfo()
                   << std::endl;

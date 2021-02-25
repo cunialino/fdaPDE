@@ -205,9 +205,16 @@ checkSmoothingParametersSize_time<-function(locations = NULL, time_locations = N
   if(!is.null(time_locations)){
     if(ncol(time_locations) != 1)
       stop("'time_locations' must be a column vector")
-    if (ncol(observations) != ifelse(is.null(IC), nrow(time_locations), nrow(time_locations)-1))
-      stop("'observations' must be a #locations x #time_locations matrix")
+
+    #Questo è ripetuto? e soprattutto, non tiene conto del caso in cui passo
+    #le IC come si deve. Se passo ic io vorrei obs non al punto zero, con
+  #questo ifelse invece mi forza a passarle anche al punto 0 e dopo non si sa
+  #cosa succeda, ma ancora più grave, ho un if che mi fa il check se ho
+  #passato IC e poi uso ifelse per la stessa cosa??
+    #if (ncol(observations) != ifelse(is.null(IC), nrow(time_locations), nrow(time_locations)-1))
+    #  stop("'observations' must be a #locations x #time_locations matrix")
   }else{
+      #Questo invece è giusto e ha senso
     if (ncol(observations) != ifelse(is.null(IC), nrow(time_mesh), nrow(time_mesh)-1))
       stop("'observations' must be a #locations x #time_locations matrix")
   }

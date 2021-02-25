@@ -501,7 +501,8 @@ CPP_smooth.FEM.PDE.sv.time<-function(locations, time_locations, observations, FE
 
 
   PDE_param_eval = NULL
-  points_eval = matrix(CPP_get_evaluations_points(mesh = FEMbasis$mesh, order = FEMbasis$order),ncol = 2)
+  points_eval = matrix(CPP_get_evaluations_points(mesh = FEMbasis$mesh, order
+                                                  = FEMbasis$order),ncol = 2)
   PDE_param_eval$K = (PDE_parameters$K)(points_eval)
   PDE_param_eval$b = (PDE_parameters$b)(points_eval)
   PDE_param_eval$c = (PDE_parameters$c)(points_eval)

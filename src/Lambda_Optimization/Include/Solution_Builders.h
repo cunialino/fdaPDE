@@ -26,7 +26,7 @@ struct output_Data
         Real                    GCV_opt         = -1;      //!< GCV optimal comptued in the vector of lambdas
         int                     termination     = -2;      //!< Reason of termination of the iterative optimization method (reached tolerance or max number of iterations)
         MatrixXv                betas;                     //!< Regression coefficients of the optimal solution
-        MatrixXv                betas_sd;
+        MatrixXr                CovsS;
 };
 
 //! Unique namespace to manage the output
