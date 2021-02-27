@@ -36,27 +36,27 @@ plot.settings <- function(data, set, file) {
         groups <-c(0, 0.9)
     for (j in 1:5) {
         image(set$xvec, set$yvec, TrueMats[[j]], col = fieldPal, xlab = "",
-              ylab = "", axes = F, zlim = zl)
-        contour(set$xvec, set$yvec, TrueMats[[j]], add = TRUE, zlim = zl)
+              ylab = "", axes = F, zlim = zl, asp=1)
+        contour(set$xvec, set$yvec, TrueMats[[j]], add = TRUE, zlim = zl, asp=1)
         mtext(paste("t=", round(times[j], digits = 2), sep = ""), side = 2,
               line = 0, las = 3)
         if (j == 1) {
             mtext("True Field", font = 2)
         }
         image(set$xvec, set$yvec, ParamMats[[j]], col = paramPal, xlab = "",
-              ylab = "", axes = F, zlim = zlP)
-        contour(set$xvec, set$yvec, ParamMats[[j]], add = TRUE,zlim = zlP)
+              ylab = "", axes = F, zlim = zlP, asp=1)
+        contour(set$xvec, set$yvec, ParamMats[[j]], add = TRUE,zlim = zlP, asp=1)
         if (j == 1) {
             mtext("True Mean", font = 2)
         }
         plot(set$loc[which(data[, j] <= groups[1]), ], pch = 19, col = paramPal[1],
              axes = F, xlim = range(set$xvec),
-             ylim = range(set$yvec))
+             ylim = range(set$yvec), asp=1)
         points(set$loc[which(data[, j] > groups[1] & data[, j] <= groups[2]), ],
-               pch = 19, col = paramPal[40])
+               pch = 19, col = paramPal[40], asp=1)
         points(set$loc[which(data[, j] > groups[2]), ], pch = 19,
-               col = paramPal[100])
-        lines(set$fsb[[1]], col = "black")
+               col = paramPal[100], asp=1)
+        lines(set$fsb[[1]], col = "black", asp=1)
         if (j == 1) {
             mtext("Data", font = 2)
         }
@@ -135,46 +135,46 @@ for (j in seq(1, 5)) {
                  TrueMats[[j]], Mats[[j]], TPSMats[[j]], SOAPMats[[j]], na.rm = T)
     levs = signif(seq(lvR[1], lvR[2], length.out = 10), digits = 3)
     image(set$xvec, set$yvec, TrueMats[[j]], col = fieldPal, xlab = "",
-          ylab = "", zlim = zl, axes = F)
+          ylab = "", zlim = zl, axes = F, asp=1)
     contour(set$xvec, set$yvec, TrueMats[[j]], add = TRUE,
-            zlim = zl, levels = levs)
+            zlim = zl, levels = levs, asp=1)
     mtext(paste("t=", round(times[j], digits = 2), sep = ""), side = 2,
-          line = 0, las = 3)
+          line = 0, las = 3, asp=1)
     if (j == 1) {
         mtext("True Field", font = 2)
     }
     if (whichones[3]) {
         image(set$xvec, set$yvec, TPSMats[[j]], col = fieldPal, xlab = "",
-              ylab = "", zlim = zl, axes = F)
+              ylab = "", zlim = zl, axes = F, asp=1)
         contour(set$xvec, set$yvec, TPSMats[[j]], add = TRUE,
-                zlim = zl, levels = levs)
+                zlim = zl, levels = levs, asp=1)
         if (j == 1) {
             mtext("TPS", font = 2)
         }
     }
     if (whichones[4]) {
         image(set$xvec, set$yvec, SOAPMats[[j]], col = fieldPal, xlab = "",
-              ylab = "", zlim = zl, axes = F)
+              ylab = "", zlim = zl, axes = F, asp=1)
         contour(set$xvec, set$yvec, SOAPMats[[j]], add = TRUE,
-                zlim = zl, levels = levs)
+                zlim = zl, levels = levs, asp=1)
         if (j == 1) {
             mtext("SOAP", font = 2)
         }
     }
     if (whichones[1]) {
         image(set$xvec, set$yvec, Mats[[j]], col = fieldPal, xlab = "", ylab = "",
-              zlim = zl, axes = F)
+              zlim = zl, axes = F, asp=1)
         contour(set$xvec, set$yvec, Mats[[j]], add = TRUE,
-                zlim = zl, levels = levs)
+                zlim = zl, levels = levs, asp=1)
         if (j == 1) {
             mtext("GSRt-PDE", font = 2)
         }
     }
     if (whichones[2]) {
         image(set$xvec, set$yvec, MatsSep[[j]], col = fieldPal, xlab = "",
-              ylab = "", zlim = zl, axes = F)
+              ylab = "", zlim = zl, axes = F, asp=1)
         contour(set$xvec, set$yvec, MatsSep[[j]], add = TRUE,
-                zlim = zl, levels = levs)
+                zlim = zl, levels = levs, asp=1)
         if (j == 1) {
             mtext("GSR-PDE", font = 2)
         }
